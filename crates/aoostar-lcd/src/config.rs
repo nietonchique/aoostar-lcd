@@ -260,10 +260,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn repository_config_is_valid() {
-        let text = include_str!("../../../granite/aoostar-lcd.toml");
+    fn example_config_is_valid() {
+        let text = include_str!("../../../config.example.toml");
         let config = Config::parse(text).unwrap();
-        assert!(config.disks.iter().any(|disk| disk.kind == DiskKind::Hdd));
+        assert_eq!(config.display.language, Lang::En);
+        assert!(config.services.units.contains(&"docker.service".to_owned()));
     }
 
     #[test]

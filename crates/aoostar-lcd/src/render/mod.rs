@@ -283,11 +283,12 @@ mod tests {
     use crate::model::{BadDevice, Disk, Pipeline, Pool, Problem, ProblemClass, ServiceStatus};
 
     fn config() -> Config {
-        Config::parse(include_str!("../../../../granite/aoostar-lcd.toml")).unwrap()
+        Config::parse(include_str!("../../../../config.example.toml")).unwrap()
     }
 
     fn test_strings() -> &'static Strings {
-        Strings::get(config().display.language)
+        // The alarm-line assertions below expect the Russian table.
+        &Strings::RU
     }
 
     fn outage(subject: &str, severity: Severity) -> Problem {

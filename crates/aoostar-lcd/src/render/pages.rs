@@ -1579,7 +1579,7 @@ mod tests {
     use super::*;
 
     fn config() -> Config {
-        Config::parse(include_str!("../../../../granite/aoostar-lcd.toml")).unwrap()
+        Config::parse(include_str!("../../../../config.example.toml")).unwrap()
     }
     #[test]
     fn phase_pages_render_at_display_size() {
