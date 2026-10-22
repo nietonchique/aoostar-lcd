@@ -1,0 +1,84 @@
+# AOOSTAR WTR MAX front-panel status display — example configuration.
+#
+# Copy to /etc/aoostar-lcd.toml and adjust. Every key is shown; sections and
+# keys marked optional can be omitted entirely.
+
+[display]
+# USB-serial device of the front panel (AOOSTAR WTR MAX / GEM12+ PRO).
+device = "/dev/serial/by-id/usb-Synwit_USB_Virtual_COM-if00"
+# Panel UI language: "en" or "ru".
+language = "en"
+# Seconds each page stays on screen.
+page_seconds = 10
+# Heartbeat file touched after every frame successfully sent to the LCD.
+# heartbeat = "/run/aoostar-lcd/heartbeat"
+# The status-bar clock is UTC by default; shift it to local time in minutes.
+# clock_utc_offset_minutes = 180
+
+[thresholds]
+# [warning, critical] boundaries; values at or above a boundary take its colour.
+cpu_temp_c = [90, 97]
+gpu_temp_c = [80, 88]
+nvme_temp_c = [65, 75]
+hdd_temp_c = [45, 50]
+ram_temp_c = [70, 80]
+memory_used_percent = [85, 95]
+space_used_percent = [85, 95]
+# Above the warning value the HDD page joins the rotation.
+hdd_busy_percent = [10, 80]
+# Pipeline age in minutes before the CI chip changes colour.
+ci_minutes = [720, 1440]
+
+# Physical disks to watch, in configuration order. by-id is the only accepted
+# identity; labels are 1-4 characters.
+#[[disk]]
+#label = "NV1"
+#kind = "nvme"
+#by_id = "/dev/disk/by-id/nvme-YOUR_NVME_DRIVE"
+#
+#[[disk]]
+#label = "H1"
+#kind = "hdd"
+#by_id = "/dev/disk/by-id/ata-YOUR_HDD"
+
+# Filesystems whose free space is shown on the Space page.
+#[[volume]]
+#label = "ROOT"
+#path = "/"
+
+# ZFS pools to watch; the first one is primary (its dataset names are shown
+# without the pool prefix).
+#[zfs]
+#pools = ["tank"]
+
+[services]
+# Boot window: after a fresh boot the STARTUP page replaces the rotation until
+# every watched service is active or this many seconds have passed.
+startup_window_secs = 600
+# Every loaded instance of these template units must be active (systemd
+# template units, e.g. Docker Compose stack instances).
+templates = ["homelab-compose@"]
+# Individual units that must be active.
+units = [
+  "docker.service",
+]
+# `<dir>/<name>` or `<dir>/ALL` marks a stopped unit as intentional
+# (maintenance) instead of an outage.
+# maintenance_dir = "/run/homelab/maintenance"
+# Docker Engine socket; used for container health and Woodpecker CI steps.
+# docker_socket = "/run/docker.sock"
+
+# Grafana alert API (optional): firing alerts join the problem list, and the
+# alert families listed under outage_families escalate to a full-screen alarm.
+#[alerts]
+#grafana_url = "http://grafana.example:3000"
+## Host header Grafana expects when it is reached by IP.
+#grafana_host = "grafana.example"
+## Root-only file with a Viewer service-account token.
+#token_file = "/etc/aoostar-lcd/grafana.token"
+#local_node = "my-server"
+#outage_families = ["availability"]
+
+# Prometheus (optional): Woodpecker CI queue length for the CI page.
+#[ci]
+#prometheus_url = "http://prometheus.example:9090"

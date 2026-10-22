@@ -1,0 +1,315 @@
+{
+  "taken_at": 1792360000,
+  "host": {
+    "cpu_percent": 53.0,
+    "load1": 9.1,
+    "cpu_temp_c": 85.5,
+    "ram_temp_c": 45.8,
+    "mem_total": 132070244352,
+    "mem_available": 73014444032,
+    "swap_total": 8589934592,
+    "swap_used": 268435456,
+    "gpu": {
+      "util_percent": 0.0,
+      "temp_c": 56.0,
+      "power_w": 21.0,
+      "mem_used_mib": 32070,
+      "mem_total_mib": 32607
+    },
+    "fans": [
+      {
+        "label": "F2",
+        "rpm": 3214
+      },
+      {
+        "label": "F3",
+        "rpm": 2860
+      },
+      {
+        "label": "F5",
+        "rpm": 944
+      }
+    ]
+  },
+  "disks": [
+    {
+      "label": "NV3",
+      "kind": "nvme",
+      "present": true,
+      "temp_c": 46.0,
+      "read_bps": 1200000,
+      "write_bps": 52000000,
+      "read_iops": 40,
+      "write_iops": 900,
+      "busy_percent": 12.0
+    },
+    {
+      "label": "SN8",
+      "kind": "nvme",
+      "present": true,
+      "temp_c": 33.0,
+      "read_bps": 0,
+      "write_bps": 4100000,
+      "read_iops": 0,
+      "write_iops": 120,
+      "busy_percent": 2.0
+    },
+    {
+      "label": "H1",
+      "kind": "hdd",
+      "present": true,
+      "temp_c": 39.0,
+      "read_bps": 2100000,
+      "write_bps": 146800640,
+      "read_iops": 30,
+      "write_iops": 210,
+      "busy_percent": 71.0
+    },
+    {
+      "label": "H2",
+      "kind": "hdd",
+      "present": true,
+      "temp_c": 41.0,
+      "read_bps": 1800000,
+      "write_bps": 146800640,
+      "read_iops": 28,
+      "write_iops": 205,
+      "busy_percent": 68.0,
+      "self_test": {
+        "remaining_percent": 60
+      }
+    },
+    {
+      "label": "H3",
+      "kind": "hdd",
+      "present": true,
+      "temp_c": 46.0,
+      "read_bps": 2300000,
+      "write_bps": 146800640,
+      "read_iops": 33,
+      "write_iops": 214,
+      "busy_percent": 74.0
+    },
+    {
+      "label": "H4",
+      "kind": "hdd",
+      "present": true,
+      "temp_c": 39.0,
+      "read_bps": 2100000,
+      "write_bps": 146800640,
+      "read_iops": 30,
+      "write_iops": 210,
+      "busy_percent": 71.0
+    },
+    {
+      "label": "H5",
+      "kind": "hdd",
+      "present": true,
+      "temp_c": 41.0,
+      "read_bps": 1800000,
+      "write_bps": 146800640,
+      "read_iops": 28,
+      "write_iops": 205,
+      "busy_percent": 68.0
+    },
+    {
+      "label": "H6",
+      "kind": "hdd",
+      "present": true,
+      "temp_c": 46.0,
+      "read_bps": 2300000,
+      "write_bps": 146800640,
+      "read_iops": 33,
+      "write_iops": 214,
+      "busy_percent": 74.0
+    }
+  ],
+  "volumes": [
+    {
+      "label": "ROOT",
+      "mounted": true,
+      "used": 412000000000,
+      "total": 738000000000
+    },
+    {
+      "label": "SVC1",
+      "mounted": true,
+      "used": 751000000000,
+      "total": 927000000000
+    },
+    {
+      "label": "SVC2",
+      "mounted": true,
+      "used": 120000000000,
+      "total": 200000000000
+    }
+  ],
+  "datasets": [
+    {
+      "name": "backups/urbackup",
+      "read_bps": 0,
+      "write_bps": 126000000
+    },
+    {
+      "name": "ci/assets",
+      "read_bps": 21000000,
+      "write_bps": 0
+    },
+    {
+      "name": "media/series",
+      "read_bps": 0,
+      "write_bps": 3000000
+    }
+  ],
+  "top_cpu": [
+    {
+      "name": "CI l2-web",
+      "percent": 31.0
+    },
+    {
+      "name": "relgo-emupro",
+      "percent": 9.4
+    },
+    {
+      "name": "urbackup",
+      "percent": 4.1
+    },
+    {
+      "name": "immich-server",
+      "percent": 2.2
+    },
+    {
+      "name": "granite-prometheus",
+      "percent": 1.0
+    }
+  ],
+  "top_memory": [
+    {
+      "name": "musicbrainz-search",
+      "bytes": 17179869184
+    },
+    {
+      "name": "CI l2-web",
+      "bytes": 15032385536
+    },
+    {
+      "name": "shared-postgres",
+      "bytes": 5368709120
+    },
+    {
+      "name": "vllm-server",
+      "bytes": 2684354560
+    },
+    {
+      "name": "granite-hermes",
+      "bytes": 2147483648
+    }
+  ],
+  "ci": {
+    "available": true,
+    "running": [
+      {
+        "repo": "azeden/l2-web",
+        "number": 429,
+        "branch": "alloc-search-thread-local",
+        "steps": [
+          "fast"
+        ],
+        "started_at": 1792359216
+      },
+      {
+        "repo": "azeden/l2-web",
+        "number": 430,
+        "branch": "hotfix-v8.35.2",
+        "steps": [
+          "fast"
+        ],
+        "started_at": 1792359226
+      },
+      {
+        "repo": "core-infra/granite-lcd-dashboard",
+        "number": 22,
+        "branch": "main",
+        "steps": [
+          "quality"
+        ],
+        "started_at": 1792357100
+      }
+    ],
+    "queued": 2,
+    "oldest_queued_secs": 420
+  },
+  "health": {
+    "problems": [
+      {
+        "class": "outage",
+        "severity": "critical",
+        "subject": "immich",
+        "detail": "HTTPS probe failed",
+        "since": 1792359700,
+        "count": 1
+      },
+      {
+        "class": "outage",
+        "severity": "warning",
+        "subject": "cars",
+        "detail": "An important expected container is missing",
+        "since": 1792200000,
+        "count": 2
+      },
+      {
+        "class": "alert",
+        "severity": "critical",
+        "subject": "urbackup",
+        "detail": "11 alerts: UrBackupFileBackupStale",
+        "since": 1791000000,
+        "count": 11
+      },
+      {
+        "class": "alert",
+        "severity": "warning",
+        "subject": "adengard",
+        "detail": "Compose service adengard is not managed",
+        "since": 1792300000,
+        "count": 2
+      },
+      {
+        "class": "alert",
+        "severity": "critical",
+        "subject": "obsidian · storage",
+        "detail": "A filesystem is predicted to fill up",
+        "since": 1792200000,
+        "count": 1
+      }
+    ],
+    "alerts": {
+      "state": "ok"
+    },
+    "containers_running": 54,
+    "containers_total": 59
+  },
+  "pools": [
+    {
+      "name": "storage01",
+      "health": "ONLINE",
+      "used": 5761732292608,
+      "total": 13984413515776,
+      "errors": 0,
+      "scan": {
+        "kind": "scrub",
+        "paused": false,
+        "percent": 34.2,
+        "eta_secs": 19800
+      },
+      "bad_devices": []
+    },
+    {
+      "name": "scratch01",
+      "health": "ONLINE",
+      "used": 1310000,
+      "total": 11990000000000,
+      "errors": 0,
+      "bad_devices": []
+    }
+  ]
+}

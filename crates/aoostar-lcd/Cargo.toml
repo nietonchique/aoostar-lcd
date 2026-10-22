@@ -1,0 +1,23 @@
+[package]
+name = "aoostar-lcd"
+version = "1.0.0"
+description = "Glanceable front-panel status display for the AOOSTAR WTR MAX home server"
+publish = false
+
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ab_glyph = "0.2"
+anyhow = "1.0"
+asterctl-lcd = { path = "../asterctl-lcd" }
+clap = { version = "4.5", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+rustix = { version = "1", default-features = false, features = ["std", "fs"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
+toml = "0.8"
+ureq = { version = "2.12", default-features = false, features = ["json"] }

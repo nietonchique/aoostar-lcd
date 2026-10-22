@@ -1,0 +1,43 @@
+[Unit]
+Description=AOOSTAR front LCD dashboard
+Documentation=https://github.com/nietonchique/aoostar-lcd
+# Ordered after what the panel really needs and nothing else: local file
+# systems (the config) and the front-panel serial device itself, so the boot
+# shows as early as the hardware allows with no udev race on the by-id
+# symlink. Deliberately NOT ordered after docker.service: at shutdown the
+# LCD must stop in parallel with the stacks, or the shutdown page would
+# have nothing left to watch.
+After=local-fs.target dev-serial-by\x2did-usb\x2dSynwit_USB_Virtual_COM\x2dif00.device
+Wants=dev-serial-by\x2did-usb\x2dSynwit_USB_Virtual_COM\x2dif00.device
+ConditionPathExists=/dev/serial/by-id/usb-Synwit_USB_Virtual_COM-if00
+
+[Service]
+Type=simple
+# Runs as root: docker socket, smartctl, zpool, nvidia-smi, cgroupfs and the serial port.
+ExecStart=/usr/local/bin/aoostar-lcd run --config /etc/aoostar-lcd.toml
+# Follows a shutdown/reboot for up to 80 s (inside the 90 s stop budget);
+# with no shutdown in progress (manual stop, deploy restart) it just
+# switches the panel off, like the `aoostar-lcd off` hook.
+ExecStopPost=-/usr/local/bin/aoostar-lcd shutdown --config /etc/aoostar-lcd.toml
+RuntimeDirectory=aoostar-lcd
+Restart=always
+RestartSec=5s
+UMask=0022
+Nice=10
+MemoryMax=128M
+TasksMax=64
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target
