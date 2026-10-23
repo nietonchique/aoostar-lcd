@@ -228,15 +228,15 @@ impl Canvas {
             let f = font_for(style.weight, ch);
             let scaled = f.as_scaled(PxScale::from(style.size));
             let id = scaled.glyph_id(ch);
-            if let Some((prev_ch, prev_font)) = previous {
-                if std::ptr::eq(prev_font, f) {
-                    width += scaled.kern(
-                        prev_font
-                            .as_scaled(PxScale::from(style.size))
-                            .glyph_id(prev_ch),
-                        id,
-                    );
-                }
+            if let Some((prev_ch, prev_font)) = previous
+                && std::ptr::eq(prev_font, f)
+            {
+                width += scaled.kern(
+                    prev_font
+                        .as_scaled(PxScale::from(style.size))
+                        .glyph_id(prev_ch),
+                    id,
+                );
             }
             width += scaled.h_advance(id);
             previous = Some((ch, f));
@@ -263,10 +263,10 @@ impl Canvas {
             let font = font_for(style.weight, ch);
             let scaled = font.as_scaled(scale);
             let id = scaled.glyph_id(ch);
-            if let Some((prev_ch, prev_font)) = previous {
-                if std::ptr::eq(prev_font, font) {
-                    caret += scaled.kern(prev_font.as_scaled(scale).glyph_id(prev_ch), id);
-                }
+            if let Some((prev_ch, prev_font)) = previous
+                && std::ptr::eq(prev_font, font)
+            {
+                caret += scaled.kern(prev_font.as_scaled(scale).glyph_id(prev_ch), id);
             }
             let glyph = id.with_scale_and_position(scale, point(caret, 0.0));
             caret += scaled.h_advance(id);
@@ -298,10 +298,10 @@ impl Canvas {
             let font = font_for(style.weight, ch);
             let scaled = font.as_scaled(scale);
             let id = scaled.glyph_id(ch);
-            if let Some((prev_ch, prev_font)) = previous {
-                if std::ptr::eq(prev_font, font) {
-                    caret += scaled.kern(prev_font.as_scaled(scale).glyph_id(prev_ch), id);
-                }
+            if let Some((prev_ch, prev_font)) = previous
+                && std::ptr::eq(prev_font, font)
+            {
+                caret += scaled.kern(prev_font.as_scaled(scale).glyph_id(prev_ch), id);
             }
             let glyph = id.with_scale_and_position(scale, point(caret, baseline));
             caret += scaled.h_advance(id);

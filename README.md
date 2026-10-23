@@ -1,5 +1,11 @@
 # aoostar-lcd
 
+[![CI](https://github.com/nietonchique/aoostar-lcd/actions/workflows/ci.yml/badge.svg)](https://github.com/nietonchique/aoostar-lcd/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/nietonchique/aoostar-lcd?sort=semver)](https://github.com/nietonchique/aoostar-lcd/releases)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE-MIT)
+[![AUR](https://img.shields.io/aur/version/aoostar-lcd-bin)](https://aur.archlinux.org/packages/aoostar-lcd-bin)
+
+
 Status panel for the AOOSTAR WTR MAX front LCD (960×376, USB serial).
 
 ![rotation](docs/img/rotation.gif)
