@@ -3,7 +3,7 @@
 # .github/workflows/release.yml. For a source build see the -git variant.
 _pkgname=aoostar-lcd
 pkgname=${_pkgname}-bin
-pkgver=1.0.0
+pkgver=1.0.1
 pkgrel=1
 pkgdesc='Glanceable front-panel status display for the AOOSTAR WTR MAX home server'
 arch=('x86_64')

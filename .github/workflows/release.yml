@@ -1,14 +1,3 @@
-# DRAFT — final home: .github/workflows/release.yml
-#
-# Tag-driven release: `git tag v1.2.3 && git push origin v1.2.3` builds the
-# x86_64 gnu binary tarball, .deb and .rpm and attaches them to the GitHub
-# release. No secrets needed: the default GITHUB_TOKEN with
-# `permissions: contents: write` is enough.
-#
-# glibc note: ubuntu-24.04 runners ship glibc 2.39. The produced binary and
-# .deb therefore need distros with glibc >= 2.39 (Debian 13+, Ubuntu 24.04+,
-# Fedora 39+, Arch). If wider backward compat is ever needed, drop the runner
-# to ubuntu-22.04 (glibc 2.35) while it still exists — nothing else changes.
 name: release
 
 on:

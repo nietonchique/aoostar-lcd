@@ -1,6 +1,6 @@
 [package]
 name = "aoostar-lcd"
-version = "1.0.0"
+version = "1.0.1"
 description = "Glanceable front-panel status display for the AOOSTAR WTR MAX home server"
 publish = false
 
@@ -22,3 +22,76 @@ serde_json = "1.0"
 tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
 toml = "0.8"
 ureq = { version = "2.12", default-features = false, features = ["json"] }
+
+[package.metadata.deb]
+maintainer = "Aleksandr Ryzhkov <nietonchique@users.noreply.github.com>"
+copyright = "2025, Aleksandr Ryzhkov"
+section = "utils"
+priority = "optional"
+# $auto resolves the shared-library deps from the built binary (libc6, libudev1 ...).
+depends = "$auto, systemd"
+recommends = "smartmontools"
+suggests = "zfsutils-linux"
+extended-description = """\
+Glanceable front-panel status dashboard for the AOOSTAR WTR MAX home server. \
+Renders CPU, memory, disk, ZFS, Docker and CI pipeline status onto the front \
+LCD over USB-serial. Optional integrations: smartmontools, ZFS, nvidia-smi, Docker.\
+"""
+# Directory that holds the unit file used by [package.metadata.deb.systemd-units];
+# must be set even though it contains no maintainer scripts (the service runs
+# as root, so there is no user to create). cargo-deb auto-generates the
+# dh_installsystemd fragments from it.
+maintainer-scripts = "../../packaging/systemd"
+assets = [
+    ["target/release/aoostar-lcd", "usr/bin/", "755"],
+    # Files under /etc are conffiles automatically (dpkg will never silently
+    # overwrite a locally modified /etc/aoostar-lcd.toml; do NOT add conf-files).
+    ["../../config.example.toml", "etc/aoostar-lcd.toml", "644"],
+    ["../../README.md", "usr/share/doc/aoostar-lcd/README.md", "644"],
+]
+
+[package.metadata.deb.systemd-units]
+# Defaults are all correct: enable=true, start=true (the unit's
+# ConditionPathExists makes starting a no-op on hardware without the panel),
+# restart-after-upgrade=true, stop-on-upgrade=true. Table must exist for
+# cargo-deb to process the unit.
+
+# ---------------------------------------------------------------------------
+# RPM (Fedora / CentOS / RHEL / openSUSE) via cargo-generate-rpm
+# Run from crates/aoostar-lcd; both tools must build WITHOUT an explicit
+# --target (host triple) — cargo-generate-rpm only rewrites asset paths that
+# start with "target/", so the ../../target/... form below requires the plain
+# host layout. Output lands in crates/aoostar-lcd/target/generate-rpm/.
+# ---------------------------------------------------------------------------
+[package.metadata.generate-rpm]
+license = "MIT OR Apache-2.0"
+release = "1"
+requires = { systemd = "*" }
+recommends = { smartmontools = "*" }
+suggests = { zfs = "*" }
+assets = [
+    { source = "../../target/release/aoostar-lcd", dest = "/usr/bin/aoostar-lcd", mode = "755" },
+    { source = "../../config.example.toml", dest = "/etc/aoostar-lcd.toml", mode = "644", config = true },
+    { source = "../../packaging/systemd/aoostar-lcd.service", dest = "/usr/lib/systemd/system/aoostar-lcd.service", mode = "644" },
+    { source = "../../README.md", dest = "/usr/share/doc/aoostar-lcd/README.md", mode = "644", doc = true },
+]
+# rpm-rs expands no macros, so the scriptlets are the raw systemctl commands
+# from the Fedora systemd packaging guidelines. $1 = number of packages left:
+# 1 on fresh install, >=2 on upgrade, 0 on final erase.
+post_install_script = """
+systemctl daemon-reload >/dev/null 2>&1 || :
+if [ "$1" -eq 1 ]; then
+    systemctl preset aoostar-lcd.service >/dev/null 2>&1 || :
+fi
+"""
+pre_uninstall_script = """
+if [ "$1" -eq 0 ]; then
+    systemctl --no-reload disable --now aoostar-lcd.service >/dev/null 2>&1 || :
+fi
+"""
+post_uninstall_script = """
+systemctl daemon-reload >/dev/null 2>&1 || :
+if [ "$1" -ge 1 ]; then
+    systemctl try-restart aoostar-lcd.service >/dev/null 2>&1 || :
+fi
+"""
