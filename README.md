@@ -19,6 +19,7 @@ when a configured disk/pool breaks or a critical service is down. On boot a
 reboot an `ExecStopPost` hook draws **SHUTDOWN / REBOOT** progress until
 every watched service is down.
 
+
 - **[Where the data comes from](docs/data-sources.md)** — 11 read-only
   sources, what each reads, at what interval, and how failures degrade.
 - **[Configuration](docs/configuration.md)** — every section and key.
@@ -43,6 +44,12 @@ sudo install -Dm0755 target/release/aoostar-lcd /usr/local/bin/aoostar-lcd
 sudo install -Dm0644 config.example.toml /etc/aoostar-lcd.toml   # edit it
 sudo install -Dm0644 dist/aoostar-lcd.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now aoostar-lcd
+```
+
+Or straight from a release (apt/dnf/pacman/tarball autodetected):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nietonchique/aoostar-lcd/main/packaging/install.sh | sudo sh
 ```
 
 CLI: `run`, `check` (validate config, no panel writes), `snapshot` (JSON),
