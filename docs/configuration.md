@@ -2,7 +2,6 @@
 
 One TOML file (`/etc/aoostar-lcd.toml`); every key is documented in the
 shipped [`config.example.toml`](../config.example.toml).
-Русская версия: [configuration.ru.md](configuration.ru.md).
 
 | Section | Keys | Meaning |
 |---|---|---|

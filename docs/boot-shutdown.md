@@ -1,7 +1,7 @@
 # Boot, shutdown and reboot
 
 How the panel behaves across power transitions, and why the systemd unit is
-wired the way it is. Русская версия: [boot-shutdown.ru.md](boot-shutdown.ru.md).
+wired the way it is.
 
 ## Boot — the STARTUP page
 

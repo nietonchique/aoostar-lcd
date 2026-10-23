@@ -68,7 +68,7 @@ jobs:
           strip "out/${dir}/aoostar-lcd"
           install -m644 config.example.toml "out/${dir}/"
           install -m644 packaging/systemd/aoostar-lcd.service "out/${dir}/"
-          install -m644 README.md README.ru.md "out/${dir}/"
+          install -m644 README.md "out/${dir}/"
           install -m644 LICENSE-MIT LICENSE-APACHE "out/${dir}/"
           tar -C out -czf "out/${dir}.tar.gz" "${dir}"
           rm -rf "out/${dir}"

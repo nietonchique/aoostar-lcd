@@ -2,7 +2,7 @@
 
 Everything the panel shows is read-only local state plus two optional
 scrapers. Nothing is written to the panel but pixels; nothing leaves the
-host. Русская версия: [data-sources.ru.md](data-sources.ru.md).
+host.
 
 | Source | Reads | Every | Feeds |
 |---|---|---|---|
