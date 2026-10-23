@@ -1,0 +1,5 @@
+Noto Sans SC and Noto Sans KR subsets
+SIL Open Font License 1.1 — https://openfontlicense.org
+Source: https://github.com/google/fonts (ofl/notosanssc, ofl/notosanskr)
+Subsets include only the codepoints used by the embedded UI translation
+tables (see i18n/*.toml) plus ASCII; regenerate when adding languages.

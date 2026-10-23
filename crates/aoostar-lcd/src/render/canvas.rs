@@ -25,6 +25,10 @@ impl Area {
 
 static MEDIUM: &[u8] = include_bytes!("../../fonts/RobotoCondensed-Medium.ttf");
 static BOLD: &[u8] = include_bytes!("../../fonts/RobotoCondensed-Bold.ttf");
+static SC_MEDIUM: &[u8] = include_bytes!("../../fonts/NotoSansSC-Medium.ttf");
+static SC_BOLD: &[u8] = include_bytes!("../../fonts/NotoSansSC-Bold.ttf");
+static KR_MEDIUM: &[u8] = include_bytes!("../../fonts/NotoSansKR-Medium.ttf");
+static KR_BOLD: &[u8] = include_bytes!("../../fonts/NotoSansKR-Bold.ttf");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Weight {
@@ -35,16 +39,28 @@ pub enum Weight {
 struct Fonts {
     medium: FontRef<'static>,
     bold: FontRef<'static>,
+    sc_medium: FontRef<'static>,
+    sc_bold: FontRef<'static>,
+    kr_medium: FontRef<'static>,
+    kr_bold: FontRef<'static>,
 }
 // The fonts are compiled in; `check_fonts` proves they parse.
 static FONTS: LazyLock<Fonts> = LazyLock::new(|| Fonts {
     medium: FontRef::try_from_slice(MEDIUM).expect("embedded medium font parses"),
     bold: FontRef::try_from_slice(BOLD).expect("embedded bold font parses"),
+    sc_medium: FontRef::try_from_slice(SC_MEDIUM).expect("embedded SC medium font parses"),
+    sc_bold: FontRef::try_from_slice(SC_BOLD).expect("embedded SC bold font parses"),
+    kr_medium: FontRef::try_from_slice(KR_MEDIUM).expect("embedded KR medium font parses"),
+    kr_bold: FontRef::try_from_slice(KR_BOLD).expect("embedded KR bold font parses"),
 });
 /// Fails if an embedded font cannot be parsed (used by `aoostar-lcd check`).
 pub fn check_fonts() -> anyhow::Result<()> {
     FontRef::try_from_slice(MEDIUM)?;
     FontRef::try_from_slice(BOLD)?;
+    FontRef::try_from_slice(SC_MEDIUM)?;
+    FontRef::try_from_slice(SC_BOLD)?;
+    FontRef::try_from_slice(KR_MEDIUM)?;
+    FontRef::try_from_slice(KR_BOLD)?;
     Ok(())
 }
 
@@ -52,6 +68,27 @@ fn font(weight: Weight) -> &'static FontRef<'static> {
     match weight {
         Weight::Medium => &FONTS.medium,
         Weight::Bold => &FONTS.bold,
+    }
+}
+
+/// The font that has a glyph for `ch`; CJK codepoints fall back to the
+/// subset Noto fonts, everything else to the default.
+fn font_for(weight: Weight, ch: char) -> &'static FontRef<'static> {
+    let c = ch as u32;
+    let is_cjk = (0x2E80..=0x9FFF).contains(&c)
+        || (0xAC00..=0xD7AF).contains(&c)
+        || (0xF900..=0xFAFF).contains(&c)
+        || (0x3000..=0x30FF).contains(&c)
+        || (0x1100..=0x11FF).contains(&c);
+    if !is_cjk {
+        return font(weight);
+    }
+    let is_korean = (0xAC00..=0xD7AF).contains(&c) || (0x1100..=0x11FF).contains(&c);
+    match (weight, is_korean) {
+        (Weight::Medium, true) => &FONTS.kr_medium,
+        (Weight::Bold, true) => &FONTS.kr_bold,
+        (Weight::Medium, false) => &FONTS.sc_medium,
+        (Weight::Bold, false) => &FONTS.sc_bold,
     }
 }
 
@@ -185,16 +222,24 @@ impl Canvas {
 
     /// Width of `text` in pixels.
     pub fn measure(style: Style, text: &str) -> f32 {
-        let scaled = font(style.weight).as_scaled(PxScale::from(style.size));
         let mut width = 0.0;
-        let mut previous = None;
+        let mut previous: Option<(char, &'static FontRef<'static>)> = None;
         for ch in text.chars() {
+            let f = font_for(style.weight, ch);
+            let scaled = f.as_scaled(PxScale::from(style.size));
             let id = scaled.glyph_id(ch);
-            if let Some(previous) = previous {
-                width += scaled.kern(previous, id);
+            if let Some((prev_ch, prev_font)) = previous {
+                if std::ptr::eq(prev_font, f) {
+                    width += scaled.kern(
+                        prev_font
+                            .as_scaled(PxScale::from(style.size))
+                            .glyph_id(prev_ch),
+                        id,
+                    );
+                }
             }
             width += scaled.h_advance(id);
-            previous = Some(id);
+            previous = Some((ch, f));
         }
         width
     }
@@ -209,21 +254,23 @@ impl Canvas {
     /// size ratio: without descenders the block would sit too low, without
     /// overshoot digits (Å) too high.
     pub fn ink_box(style: Style, text: &str) -> (f32, f32) {
-        let font = font(style.weight);
         let scale = PxScale::from(style.size);
-        let scaled = font.as_scaled(scale);
         let mut top = 0.0_f32;
         let mut bottom = 0.0_f32;
         let mut caret = 0.0;
-        let mut previous = None;
+        let mut previous: Option<(char, &'static FontRef<'static>)> = None;
         for ch in text.chars() {
+            let font = font_for(style.weight, ch);
+            let scaled = font.as_scaled(scale);
             let id = scaled.glyph_id(ch);
-            if let Some(previous) = previous {
-                caret += scaled.kern(previous, id);
+            if let Some((prev_ch, prev_font)) = previous {
+                if std::ptr::eq(prev_font, font) {
+                    caret += scaled.kern(prev_font.as_scaled(scale).glyph_id(prev_ch), id);
+                }
             }
             let glyph = id.with_scale_and_position(scale, point(caret, 0.0));
             caret += scaled.h_advance(id);
-            previous = Some(id);
+            previous = Some((ch, font));
             if let Some(outlined) = font.outline_glyph(glyph) {
                 let bounds = outlined.px_bounds();
                 top = top.min(bounds.min.y);
@@ -241,22 +288,24 @@ impl Canvas {
             Align::Center => x - width / 2.0,
             Align::Right => x - width,
         };
-        let font = font(style.weight);
         let scale = PxScale::from(style.size);
-        let scaled = font.as_scaled(scale);
         let (canvas_w, canvas_h) = (self.pixmap.width() as i32, self.pixmap.height() as i32);
         let stride = self.pixmap.width() as usize;
         let pixels = self.pixmap.pixels_mut();
         let mut caret = start;
-        let mut previous = None;
+        let mut previous: Option<(char, &'static FontRef<'static>)> = None;
         for ch in text.chars() {
+            let font = font_for(style.weight, ch);
+            let scaled = font.as_scaled(scale);
             let id = scaled.glyph_id(ch);
-            if let Some(previous) = previous {
-                caret += scaled.kern(previous, id);
+            if let Some((prev_ch, prev_font)) = previous {
+                if std::ptr::eq(prev_font, font) {
+                    caret += scaled.kern(prev_font.as_scaled(scale).glyph_id(prev_ch), id);
+                }
             }
             let glyph = id.with_scale_and_position(scale, point(caret, baseline));
             caret += scaled.h_advance(id);
-            previous = Some(id);
+            previous = Some((ch, font));
             let Some(outlined) = font.outline_glyph(glyph) else {
                 continue;
             };

@@ -1,6 +1,6 @@
 [package]
 name = "aoostar-lcd"
-version = "1.0.1"
+version = "1.1.0"
 description = "Glanceable front-panel status display for the AOOSTAR WTR MAX home server"
 publish = false
 
