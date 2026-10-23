@@ -1,160 +1,85 @@
 # aoostar-lcd
 
-Glanceable front-panel status display for the AOOSTAR WTR MAX home server
-(960×376 USB-serial LCD, ~4.3"). Built to be read from a distance in the
-moments the owner actually looks at it:
+Glanceable status panel for the AOOSTAR WTR MAX front LCD (960×376, USB
+serial). One systemd service draws every page: alarms, boot and shutdown
+progress, disks, ZFS, Docker, CI. UI: English or Russian.
 
-- a disk fails or a critical service is down without a maintenance flag →
-  the whole screen blinks red with **ALARM** and every broken thing;
-- the server is booting → a **STARTUP** page tracks the watched services
-  coming up instead of a false alarm about everything being down;
-- the server is stopping → **SHUTDOWN / REBOOT** shows what has stopped and
-  what is still going down;
-- something else is wrong → the status bar turns amber and names it;
-- the HDDs are noisy → per-disk read/write, scrub/SMART-test progress,
-  busiest datasets;
-- CI takes long → which pipelines run, for how long, how many wait;
-- otherwise: temperatures, load, free memory and free space.
+| | | | |
+|---|---|---|---|
+| ![home](docs/img/home.png) | ![startup](docs/img/startup.png) | ![alarm](docs/img/alarm.png) | ![shutdown](docs/img/shutdown.png) |
+| ![problems](docs/img/problems.png) | ![ci](docs/img/ci.png) | ![hdd](docs/img/hdd.png) | ![zfs](docs/img/zfs.png) |
 
-UI language: English or Russian, set by `[display] language` in the config.
+Pages rotate by relevance: the summary always shows; problems, CI and HDD
+pages join only while relevant; a full-screen blinking **ALARM** takes over
+when a configured disk/pool breaks or a critical service is down. On boot a
+**STARTUP** page lists watched services that are not up yet (and suppresses
+service alarms while it shows); on poweroff/reboot an `ExecStopPost` hook
+draws **SHUTDOWN / REBOOT** progress until every watched service is down.
+Russian UI (screenshots above) — `[display] language = "ru"`.
 
-## What is on the screen
+## Where the data comes from
 
-**Alarm takeover.** Any of these replaces every page with a full-screen alarm
-that flips red/black on every frame (~1.3 s, the panel's full-repaint time):
-a configured disk is missing or reports SMART `FAILED`, a pool leaf device is
-not `ONLINE` (shown by disk label), a pool is not `ONLINE`, or a critical
-service outage without a maintenance flag. One problem is shown huge; several
-are grouped per object and laid out in 1–3 columns with one common font size;
-beyond 12 lines the last reads "and N more". Failed timer jobs, CI step
-containers and warning-level outages never raise the alarm.
+Everything is read-only local state plus two optional scrapers. Nothing is
+written to the panel but pixels; nothing leaves the host.
 
-Every other page shares a 64 px **status bar**: state on the left
-(`ALL RUNNING` green / `PROBLEM: …` amber / `MAINTENANCE: …` grey), then
-chips (`alerts N`, `CI 2 · 17 min`, `HDD 71%`), page dots and the clock.
+| Source | Reads | Every | Feeds |
+|---|---|---|---|
+| `/proc` | `stat`, `loadavg`, `meminfo`, `uptime`, `diskstats`, `mountinfo` | 1 s | CPU load, RAM/swap, per-disk read/write/IOPS/busy, volume usage |
+| `/sys/class/hwmon` | temperature and fan sensors | 1 s | CPU/GPU/DIMM temps, fan rpm |
+| cgroup v2 tree | per-cgroup CPU and memory | 2 s | "top workloads" page (containers, services) |
+| `/proc/spl/kstat/zfs/<pool>/objset-*` | per-dataset logical I/O counters | 1 s | busiest datasets — who makes the HDDs work |
+| Docker Engine API | `/containers/json` over `/run/docker.sock`; `CI_*` env of Woodpecker step containers | 5 s | unhealthy/restarting containers, running CI pipelines |
+| `systemctl` | `list-units` + `show` for configured stacks/units; `list-jobs` | 5 s / on stop | service outages, failed units, maintenance flags, shutdown-vs-reboot |
+| `nvidia-smi` | utilization, temperature, power, VRAM | 5 s | GPU tile |
+| `zpool status -j`, `zpool list` | pool/leaf health, capacity, scan | 30 s | ZFS page, pool alarms |
+| `smartctl -j -H -c -A` | health verdict, temperature, self-test progress | 60 s | HDD tiles, disk alarms |
+| Grafana alert API *(optional)* | firing alerts over HTTP with a Viewer token | 15 s | extra problems; `outage_families` escalate to ALARM |
+| Prometheus *(optional)* | Woodpecker queue gauges | 30 s | CI queue length and wait |
 
-| Page | Shown | Content |
-|---|---|---|
-| Startup | fresh boot while watched services are still down | big `up / total`, stopwatch since boot, one row per service not up yet |
-| Home | always, double dwell | CPU temp + load, free RAM, GPU temp + util/VRAM, HDD busy % (+ read/write when busy) |
-| Problems | while anything is firing | outages first, then Grafana alerts and failed jobs grouped by service, with age and count |
-| CI | while pipelines run or wait | repo, pipeline number, step, branch, stopwatch; queue length and wait |
-| HDD | HDD busy ≥ 10 %, running scrub/resilver or SMART self-test | one row per HDD (any count): busy %, read MB/s, write MB/s, temperature or self-test |
-| ZFS | together with HDD | every configured pool: health, free space, scan; busiest datasets with read/write |
-| Temps | always | CPU, GPU, DIMM, fan rpm, every NVMe and HDD (4 × up to 3 tiles) |
-| Load | always | top CPU and memory workloads (containers, CI pipelines, services) |
-| Space | always | one row per volume and pool: free, total, meter, used % |
-
-Headline values are 84–108 px, detail text 38–42 px, nothing below 34 px.
-Colour encodes state only (thresholds in the configuration).
-
-## Boot and power transitions
-
-The systemd unit is ordered after local file systems and the panel's own
-serial device (not after Docker), so boot tracking starts as early as the
-hardware allows. Until every watched stack/unit is active — or
-`services.startup_window_secs` (600 s) pass since boot — the startup page
-replaces the rotation, and critical service outages do not raise the alarm
-while it is up; hardware alarms (missing disks, degraded pools) show in every
-phase.
-
-When systemd stops the unit on poweroff or reboot, `ExecStopPost` runs
-`aoostar-lcd shutdown`: it reads `systemctl list-jobs` to tell SHUTDOWN from
-REBOOT, then shows the watched services stopping — `stopped 5 / 13`, the
-names still up, the container count — once per second for up to 80 s (inside
-the 90 s stop budget). Nothing is ordered after the unit, so this parallel
-tracking never delays the poweroff: the loop exits as soon as every watched
-service is down. With no shutdown job pending (a manual stop, a deploy
-restart) it switches the panel off immediately. A poweroff ends with the
-panel dark; after a reboot the last frame stays on the panel until the
-startup page replaces it.
-
-## Data sources (all read-only)
-
-| Source | Interval | Used for |
-|---|---|---|
-| `/proc`, `/sys` (stat, meminfo, diskstats, hwmon, cgroup v2) | 1 s | CPU, memory, temps, fans, disk rates, workloads |
-| `/proc/spl/kstat/zfs/<pool>/objset-*` | 1 s | per-dataset logical I/O ("who makes the HDDs work") |
-| Docker Engine API (`/run/docker.sock`) | 5 s | unhealthy/restarting containers, running Woodpecker CI steps (`CI_*` env only) |
-| `systemctl` | 5 s | inactive configured stacks/units, failed units, maintenance flags |
-| `systemctl list-jobs` | on stop | shutdown vs reboot detection |
-| `nvidia-smi` | 5 s | GPU |
-| Grafana alert API (Viewer token) | 15 s | firing alerts; `alert_family` decides outage vs alert |
-| Prometheus | 30 s | Woodpecker queue length and oldest wait |
-| `zpool status -j` / `zpool list` | 30 s | health, errors, non-`ONLINE` leaf devices (mapped to disk labels), scrub/resilver progress |
-| `smartctl -j -H -c -A` | 60 s | HDD temperature, SMART health verdict, self-test progress |
-
-A source that fails keeps its last value briefly and then shows `--`; an
-unreachable Grafana is itself reported as a problem.
-
-## Install
-
-Requirements: Linux with systemd, a Rust toolchain (1.88+), `libudev-dev` and
-`pkg-config`.
-
-```bash
-git clone https://github.com/nietonchique/aoostar-lcd
-cd aoostar-lcd
-cargo build --locked --release -p aoostar-lcd
-sudo install -Dm0755 target/release/aoostar-lcd /usr/local/bin/aoostar-lcd
-sudo install -Dm0644 config.example.toml /etc/aoostar-lcd.toml  # then edit it
-sudo install -Dm0644 dist/aoostar-lcd.service /etc/systemd/system/aoostar-lcd.service
-sudo systemctl daemon-reload && sudo systemctl enable --now aoostar-lcd
-```
-
-Validate a configuration without touching the panel:
-
-```bash
-aoostar-lcd check --config /etc/aoostar-lcd.toml
-```
+A failed source keeps its last value for three intervals, then shows `--`;
+an unreachable Grafana becomes a problem row itself.
 
 ## Configuration
 
-`config.example.toml` documents every key. Sections: `[display]` (device,
-language, page seconds, heartbeat, clock offset), `[thresholds]` (warning /
-critical boundaries per metric), `[[disk]]` / `[[volume]]` (what to watch,
-by-id identities only for disks), `[zfs]` (pools), `[services]` (systemd
-templates and units that must be active, boot window, maintenance dir,
-Docker socket), `[alerts]` (optional Grafana), `[ci]` (optional Prometheus).
+One TOML file (`/etc/aoostar-lcd.toml`); [`config.example.toml`](config.example.toml)
+documents every key.
 
-## Development
+| Section | Keys | Meaning |
+|---|---|---|
+| `[display]` | `device`, `language` (`en`/`ru`), `page_seconds`, `heartbeat`, `clock_utc_offset_minutes` | panel device, UI language, rotation speed, clock shift |
+| `[thresholds]` | `*_temp_c`, `memory_used_percent`, `space_used_percent`, `hdd_busy_percent`, `ci_minutes` — each `[warning, critical]` | when values turn amber/red and which pages join the rotation |
+| `[[disk]]` | `label` (1–4 chars), `kind` (`nvme`/`hdd`), `by_id` | disks to watch; **by-id paths only**; missing or SMART-failed → ALARM |
+| `[[volume]]` | `label`, `path` | filesystems on the Space page |
+| `[zfs]` | `pools` (first = primary) | pools to watch; leaf not `ONLINE` → ALARM |
+| `[services]` | `templates`, `units`, `startup_window_secs`, `maintenance_dir`, `docker_socket` | systemd units that must be active; `<dir>/<unit>` or `<dir>/ALL` marks intentional stops; boot-window length |
+| `[alerts]` *(optional)* | `grafana_url`, `grafana_host`, `token_file`, `local_node`, `outage_families` | Grafana alert integration |
+| `[ci]` *(optional)* | `prometheus_url` | Woodpecker queue metrics |
+
+Boot and shutdown behaviour: the unit is ordered only after local file
+systems and the panel's serial device — never after Docker — so the STARTUP
+page appears as early as the hardware allows, and at shutdown the service
+stops in the first wave, keeping the progress page up for up to 80 s (inside
+systemd's 90 s stop budget) while the stacks go down in parallel. With no
+shutdown in progress the hook just switches the panel off; a poweroff ends
+dark, a reboot keeps the last frame until STARTUP replaces it.
+
+## Install
+
+Linux + systemd, Rust 1.88+, `libudev-dev`, `pkg-config`.
 
 ```bash
-cargo fmt --all --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
-
-# Offline preview of every page from a snapshot fixture
-cargo run -p aoostar-lcd -- preview --config config.example.toml \
-  --fixture crates/aoostar-lcd/fixtures/boot.json --out-dir /tmp/lcd
-
-# Preview the live state of the host
-sudo aoostar-lcd snapshot > /tmp/live.json
-cargo run -p aoostar-lcd -- preview --config /etc/aoostar-lcd.toml \
-  --fixture /tmp/live.json --out-dir /tmp/lcd
+cargo build --locked --release -p aoostar-lcd
+sudo install -Dm0755 target/release/aoostar-lcd /usr/local/bin/aoostar-lcd
+sudo install -Dm0644 config.example.toml /etc/aoostar-lcd.toml   # edit it
+sudo install -Dm0644 dist/aoostar-lcd.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now aoostar-lcd
 ```
 
-CLI: `run` (drive the panel), `check` (validate config + one collection),
-`snapshot` (print a snapshot as JSON), `preview` (render pages to PNG),
-`shutdown` (shutdown/reboot progress; used by `ExecStopPost`), `off`.
-
-## Layout
-
-```text
-crates/asterctl-lcd/   serial protocol (from zehnm/aoostar-rs, MIT/Apache-2.0)
-crates/aoostar-lcd/    collector, renderer, rotation, i18n, CLI
-  fixtures/            snapshot fixtures for offline previews
-  fonts/               Roboto Condensed Medium/Bold (OFL), compiled in
-config.example.toml    documented example configuration
-dist/                  example systemd unit
-```
+CLI: `run`, `check` (validate config, no panel writes), `snapshot` (JSON),
+`preview` (render pages to PNG from a snapshot), `shutdown`, `off`.
 
 ## License
 
-The protocol crate keeps the upstream MIT OR Apache-2.0 license
-([LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)); everything
-else is under the same dual license. Roboto Condensed is under the SIL Open
-Font License ([crates/aoostar-lcd/fonts/OFL.txt](crates/aoostar-lcd/fonts/OFL.txt)).
-Serial protocol and panel handling credit [zehnm/aoostar-rs](https://github.com/zehnm/aoostar-rs).
-
-See [README.ru.md](README.ru.md) for the Russian version.
+MIT OR Apache-2.0; Roboto Condensed under SIL OFL. Serial protocol from
+[zehnm/aoostar-rs](https://github.com/zehnm/aoostar-rs).
+[Русская версия](README.ru.md).
