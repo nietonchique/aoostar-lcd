@@ -34,8 +34,9 @@ pub struct Config {
 pub struct DisplayConfig {
     /// Serial device of the front LCD.
     pub device: PathBuf,
-    /// Panel UI language: a code with an `i18n/<code>.toml` table, embedded
-    /// or found in `i18n_dir`.
+    /// Panel UI language: "auto" (follow the system locale, fall back to
+    /// English) or a code with an `i18n/<code>.toml` table, embedded or
+    /// found in `i18n_dir`.
     #[serde(default = "default_language")]
     pub language: String,
     /// Extra or overridden translation tables (`<dir>/<code>.toml`).
@@ -57,7 +58,7 @@ fn default_page_seconds() -> u64 {
 }
 
 fn default_language() -> String {
-    "en".to_owned()
+    "auto".to_owned()
 }
 
 fn default_heartbeat() -> PathBuf {

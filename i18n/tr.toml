@@ -1,0 +1,111 @@
+# Turkish UI strings.
+
+name = "Türkçe"
+plural_family = "tr"
+
+[status]
+all_running = "HER ŞEY ÇALIŞIYOR"
+down = "ÇALIŞMIYOR"
+problem = "SORUN"
+maintenance = "BAKIM"
+alerts = "uyarılar"
+alerts_unknown = "uyarılar ?"
+
+[units]
+second = "sn"
+minute = "dk"
+hour = "sa"
+day = "g"
+watt = "W"
+rate = "MB/s"
+bytes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+[alarm]
+title = "ALARM"
+missing = "kayıp"
+smart_failed = "SMART HATASI"
+service_down = "çalışmıyor"
+more = "ve {n} tane daha"
+
+[home]
+load = "yük."
+free_ram = "BOŞ RAM"
+of = "/"
+idle = "boşta"
+max = "maks."
+paused = "duraklatıldı"
+read = "okuma"
+write = "yazma"
+smart_test = "SMART testi"
+
+[problems]
+none = "sorun yok"
+alerts_word = "uyarı"
+more_line = "{count} tane daha · {alerts} uyarı"
+
+[ci]
+none = "derleme yok"
+queue = "kuyruk"
+waiting = "bekliyor"
+more_running = "{n} tane daha sürüyor"
+
+[hdd]
+disk = "disk"
+busy = "yük"
+read = "okuma MB/s"
+write = "yazma MB/s"
+missing = "disk yok"
+self_test = "test"
+none = "HDD tanımlı değil"
+
+[zfs]
+free_of = "boş"
+eta = "kalan"
+activity = "HDD'yi meşgul edenler, MB/s"
+datasets_idle = "veri setleri boşta"
+
+[temps]
+ram = "RAM"
+fan = "FAN"
+gone = "yok"
+
+[load]
+memory = "BELLEK · boş"
+no_data = "veri yok"
+
+[space]
+none = "birim tanımlı değil"
+gone = "yok"
+
+[phase]
+startup = "BAŞLATMA"
+uptime = "açılıştan beri"
+all_up = "hizmetler çalışıyor"
+shutdown = "KAPATMA"
+reboot = "YENİDEN BAŞLATMA"
+elapsed = "geçti"
+all_stopped = "tüm hizmetler durduruldu"
+status_unavailable = "durum alınamıyor"
+
+[plurals]
+services_up.one = "hizmet çalışıyor"
+services_up.other = "hizmet çalışıyor"
+services_stopped.one = "hizmet durduruldu"
+services_stopped.other = "hizmet durduruldu"
+containers.one = "{n} konteyner"
+containers.other = "{n} konteyner"
+
+[details]
+"stack inactive" = "stack çalışmıyor"
+"unit failed" = "birim hata verdi"
+"unit missing" = "birim yok"
+"unit inactive" = "birim etkin değil"
+"container unhealthy" = "konteyner sağlıksız"
+"container restarting" = "konteyner yeniden başlıyor"
+"maintenance" = "bakım"
+"alerts unavailable" = "uyarılar erişilemiyor"
+"pool errors" = "havuz hataları"
+pool_prefix = "havuz "
+
+[subjects]
+"failed jobs" = "başarısız işler"

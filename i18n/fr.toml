@@ -1,0 +1,111 @@
+# Textes de l'interface en français.
+
+name = "Français"
+plural_family = "en"
+
+[status]
+all_running = "TOUT FONCTIONNE"
+down = "HORS SERVICE"
+problem = "PROBLÈME"
+maintenance = "MAINTENANCE"
+alerts = "alertes"
+alerts_unknown = "alertes ?"
+
+[units]
+second = "s"
+minute = "min"
+hour = "h"
+day = "j"
+watt = "W"
+rate = "Mo/s"
+bytes = ["o", "Ko", "Mo", "Go", "To", "Po"]
+
+[alarm]
+title = "ALARME"
+missing = "manquant"
+smart_failed = "SMART DÉFAILLANT"
+service_down = "à l'arrêt"
+more = "et {n} autres"
+
+[home]
+load = "charge"
+free_ram = "RAM LIBRE"
+of = "sur"
+idle = "inactif"
+max = "max"
+paused = "en pause"
+read = "lecture"
+write = "écriture"
+smart_test = "test SMART"
+
+[problems]
+none = "aucun problème"
+alerts_word = "alertes"
+more_line = "encore {count} · {alerts} alertes"
+
+[ci]
+none = "aucun build"
+queue = "file d'attente"
+waiting = "attend"
+more_running = "{n} autres en cours"
+
+[hdd]
+disk = "disque"
+busy = "charge"
+read = "lecture Mo/s"
+write = "écriture Mo/s"
+missing = "sans disque"
+self_test = "test"
+none = "aucun HDD configuré"
+
+[zfs]
+free_of = "libre"
+eta = "reste"
+activity = "qui charge les HDD, Mo/s"
+datasets_idle = "datasets inactifs"
+
+[temps]
+ram = "RAM"
+fan = "VENTILO"
+gone = "absent"
+
+[load]
+memory = "MÉMOIRE · libre"
+no_data = "aucune donnée"
+
+[space]
+none = "aucun volume configuré"
+gone = "absent"
+
+[phase]
+startup = "DÉMARRAGE"
+uptime = "depuis le démarrage"
+all_up = "services actifs"
+shutdown = "ARRÊT"
+reboot = "REDÉMARRAGE"
+elapsed = "écoulé"
+all_stopped = "tous les services arrêtés"
+status_unavailable = "statut indisponible"
+
+[plurals]
+services_up.one = "service actif"
+services_up.other = "services actifs"
+services_stopped.one = "service arrêté"
+services_stopped.other = "services arrêtés"
+containers.one = "{n} conteneur"
+containers.other = "{n} conteneurs"
+
+[details]
+"stack inactive" = "stack arrêté"
+"unit failed" = "unité en échec"
+"unit missing" = "unité absente"
+"unit inactive" = "unité inactive"
+"container unhealthy" = "conteneur défaillant"
+"container restarting" = "conteneur redémarre"
+"maintenance" = "maintenance"
+"alerts unavailable" = "alertes inaccessibles"
+"pool errors" = "erreurs du pool"
+pool_prefix = "pool "
+
+[subjects]
+"failed jobs" = "jobs en échec"

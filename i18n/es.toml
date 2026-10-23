@@ -1,0 +1,111 @@
+# Textos de la interfaz en español.
+
+name = "Español"
+plural_family = "en"
+
+[status]
+all_running = "TODO FUNCIONA"
+down = "CAÍDO"
+problem = "PROBLEMA"
+maintenance = "MANTENIMIENTO"
+alerts = "alertas"
+alerts_unknown = "alertas ?"
+
+[units]
+second = "s"
+minute = "min"
+hour = "h"
+day = "d"
+watt = "W"
+rate = "MB/s"
+bytes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+[alarm]
+title = "ALARMA"
+missing = "desaparecido"
+smart_failed = "SMART FALLIDO"
+service_down = "caído"
+more = "y {n} más"
+
+[home]
+load = "carga"
+free_ram = "RAM LIBRE"
+of = "de"
+idle = "inactivo"
+max = "máx"
+paused = "en pausa"
+read = "lectura"
+write = "escritura"
+smart_test = "prueba SMART"
+
+[problems]
+none = "sin problemas"
+alerts_word = "alertas"
+more_line = "{count} más · {alerts} alertas"
+
+[ci]
+none = "sin builds"
+queue = "cola"
+waiting = "esperando"
+more_running = "{n} más en ejecución"
+
+[hdd]
+disk = "disco"
+busy = "carga"
+read = "lectura MB/s"
+write = "escritura MB/s"
+missing = "sin disco"
+self_test = "prueba"
+none = "sin HDD configurados"
+
+[zfs]
+free_of = "libre"
+eta = "falta"
+activity = "quién carga los HDD, MB/s"
+datasets_idle = "conjuntos de datos inactivos"
+
+[temps]
+ram = "RAM"
+fan = "VENTILADOR"
+gone = "no"
+
+[load]
+memory = "MEMORIA · libre"
+no_data = "sin datos"
+
+[space]
+none = "sin volúmenes configurados"
+gone = "no"
+
+[phase]
+startup = "ARRANQUE"
+uptime = "desde el arranque"
+all_up = "servicios activos"
+shutdown = "APAGADO"
+reboot = "REINICIO"
+elapsed = "transcurrido"
+all_stopped = "todos los servicios detenidos"
+status_unavailable = "estado no disponible"
+
+[plurals]
+services_up.one = "servicio activo"
+services_up.other = "servicios activos"
+services_stopped.one = "servicio detenido"
+services_stopped.other = "servicios detenidos"
+containers.one = "{n} contenedor"
+containers.other = "{n} contenedores"
+
+[details]
+"stack inactive" = "stack detenido"
+"unit failed" = "unidad fallida"
+"unit missing" = "unidad ausente"
+"unit inactive" = "unidad inactiva"
+"container unhealthy" = "contenedor en fallo"
+"container restarting" = "contenedor reiniciando"
+"maintenance" = "mantenimiento"
+"alerts unavailable" = "alertas inaccesibles"
+"pool errors" = "errores del pool"
+pool_prefix = "pool "
+
+[subjects]
+"failed jobs" = "tareas fallidas"

@@ -1,0 +1,117 @@
+# Українські рядки інтерфейсу панелі.
+
+name = "Українська"
+plural_family = "uk"
+
+[status]
+all_running = "ВСЕ ПРАЦЮЄ"
+down = "НЕ ПРАЦЮЄ"
+problem = "ПРОБЛЕМА"
+maintenance = "ОБСЛУГОВУВАННЯ"
+alerts = "алерти"
+alerts_unknown = "алерти ?"
+
+[units]
+second = "с"
+minute = "хв"
+hour = "год"
+day = "д"
+watt = "Вт"
+rate = "МБ/с"
+bytes = ["Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ"]
+
+[alarm]
+title = "АВАРІЯ"
+missing = "зник"
+smart_failed = "SMART відмова"
+service_down = "лежить"
+more = "і ще {n}"
+
+[home]
+load = "завант."
+free_ram = "ВІЛ. ОЗП"
+of = "з"
+idle = "тихо"
+max = "макс."
+paused = "пауза"
+read = "читання"
+write = "запис"
+smart_test = "SMART тест"
+
+[problems]
+none = "проблем немає"
+alerts_word = "алертів"
+more_line = "ще {count} · алертів: {alerts}"
+
+[ci]
+none = "збірок немає"
+queue = "черга"
+waiting = "чекає"
+more_running = "ще йде {n}"
+
+[hdd]
+disk = "диск"
+busy = "завантаження"
+read = "читання МБ/с"
+write = "запис МБ/с"
+missing = "немає диска"
+self_test = "тест"
+none = "HDD не налаштовані"
+
+[zfs]
+free_of = "вільн."
+eta = "ще"
+activity = "хто навантажує HDD, МБ/с"
+datasets_idle = "датасети без активності"
+
+[temps]
+ram = "ОЗП"
+fan = "ВЕНТ"
+gone = "нема"
+
+[load]
+memory = "ПАМ'ЯТЬ · вільн."
+no_data = "немає даних"
+
+[space]
+none = "томи не налаштовані"
+gone = "нема"
+
+[phase]
+startup = "ЗАПУСК"
+uptime = "з завантаження"
+all_up = "служби працюють"
+shutdown = "ВИМКНЕННЯ"
+reboot = "ПЕРЕЗАВАНТАЖЕННЯ"
+elapsed = "минуло"
+all_stopped = "усі служби зупинені"
+status_unavailable = "статус недоступний"
+
+[plurals]
+services_up.one = "одна служба працює"
+services_up.few = "служби працюють"
+services_up.many = "служб працює"
+services_up.other = "служб працює"
+services_stopped.one = "служба зупинена"
+services_stopped.few = "служби зупинені"
+services_stopped.many = "служб зупинено"
+services_stopped.other = "служб зупинено"
+containers.one = "{n} контейнер"
+containers.few = "{n} контейнери"
+containers.many = "{n} контейнерів"
+containers.other = "{n} контейнерів"
+
+[details]
+"stack inactive" = "стек не запущений"
+"unit failed" = "юніт упав"
+"unit missing" = "юніт відсутній"
+"unit inactive" = "юніт не активний"
+"container unhealthy" = "контейнер нездоровий"
+"container restarting" = "контейнер перезапускається"
+"maintenance" = "обслуговування"
+"alerts unavailable" = "алерти недоступні"
+"pool errors" = "помилки пула"
+pool_prefix = "пул "
+
+[subjects]
+"failed jobs" = "збій задач"

@@ -364,7 +364,11 @@ const HEADLINE_VALUE_WIDTH: f32 = 214.0;
 fn headline(canvas: &mut Canvas, tile: &Tile, item: Headline) {
     tile.panel(canvas);
     let x = tile.x + PAD;
-    let value_baseline = tile.y + (tile.h - 14.0 + Canvas::cap_height(VALUE_XL)) / 2.0;
+    // The meter keeps the same inset as the side padding, and the big value
+    // is ink-centered in the space above it.
+    let meter_y = tile.y + tile.h - PAD - 8.0;
+    let (above, below) = Canvas::ink_box(VALUE_XL, &item.value);
+    let value_baseline = tile.y + (meter_y - 14.0 - tile.y - above - below) / 2.0 + above;
     value_with_unit(
         canvas,
         x - 3.0,
@@ -376,7 +380,7 @@ fn headline(canvas: &mut Canvas, tile: &Tile, item: Headline) {
     );
     if let Some((fraction, tone)) = item.meter {
         canvas.meter(
-            Area::new(x, tile.y + tile.h - 16.0, HEADLINE_VALUE_WIDTH, 8.0),
+            Area::new(x, meter_y, HEADLINE_VALUE_WIDTH, 8.0),
             fraction,
             tone_fill(tone),
             TRACK,
@@ -424,23 +428,48 @@ fn card(canvas: &mut Canvas, x: f32, y: f32, w: f32, h: f32, accent: Option<Rgb>
     }
 }
 
-/// Vertical baseline of a single line centered inside a row of height `h`.
-/// The baseline is the bottom of the caps: centering it means half the cap
-/// height ends up below the middle line.
-fn center_baseline(y: f32, h: f32, style: Style) -> f32 {
-    y + (h + Canvas::cap_height(style)) / 2.0
+/// Baseline of a single line whose ink box is centered in a row: pixel
+/// symmetry regardless of descenders or digit overshoot.
+fn center_baseline(y: f32, h: f32, style: Style, text: &str) -> f32 {
+    let (above, below) = Canvas::ink_box(style, text);
+    y + (h - above - below) / 2.0 + above
 }
 
-/// Baselines of a vertically centered title-over-detail block. Row content
-/// must not hug the bottom edge: the block shares the top and bottom padding.
-fn two_line_baselines(y: f32, h: f32, title: Style, detail: Style, gap: f32) -> (f32, f32) {
-    let block = Canvas::cap_height(title) + gap + Canvas::cap_height(detail);
-    let top = y + (h - block) / 2.0;
-    (
-        top + Canvas::cap_height(title),
-        top + Canvas::cap_height(title) + gap + Canvas::cap_height(detail),
-    )
+/// Baseline of a row where two styles share one baseline: centered by the
+/// taller ink box of the two (ZFS pool rows: name + details).
+fn center_baseline_pair(
+    y: f32,
+    h: f32,
+    first: Style,
+    first_text: &str,
+    second: Style,
+    second_text: &str,
+) -> f32 {
+    let (fa, fb) = Canvas::ink_box(first, first_text);
+    let (sa, sb) = Canvas::ink_box(second, second_text);
+    let (above, below) = (fa.max(sa), fb.max(sb));
+    y + (h - above - below) / 2.0 + above
 }
+
+/// Baselines of a title-over-detail block, ink box centered in the row.
+fn two_line_baselines(
+    y: f32,
+    h: f32,
+    title: Style,
+    title_text: &str,
+    detail: Style,
+    detail_text: &str,
+    gap: f32,
+) -> (f32, f32) {
+    let (ta, _) = Canvas::ink_box(title, title_text);
+    let (da, db) = Canvas::ink_box(detail, detail_text);
+    let block = ta + gap + da + db;
+    let top = y + (h - block) / 2.0;
+    (top + ta, top + ta + gap + da)
+}
+
+/// One content inset for every panel header, derived from the page padding.
+const HEADER_INSET: f32 = PAD;
 
 // ---------------------------------------------------------------- pages
 
@@ -632,8 +661,10 @@ fn problems(canvas: &mut Canvas, view: &View) {
 
         let right_edge = WIDTH - MARGIN - PAD;
         let age_style = LABEL.color(TEXT);
+        let subject = strings.subject(&problem.subject).to_owned();
+        let detail_text = strings.detail(&problem.detail);
         let (title_baseline, detail_baseline) =
-            two_line_baselines(y, row_height, TITLE, DETAIL, 12.0);
+            two_line_baselines(y, row_height, TITLE, &subject, DETAIL, &detail_text, 12.0);
         let age_width = match problem.since {
             Some(since) => canvas.text(
                 right_edge,
@@ -655,9 +686,8 @@ fn problems(canvas: &mut Canvas, view: &View) {
             Align::Left,
             title_style,
             right_edge - age_width - 24.0 - left,
-            strings.subject(&problem.subject),
+            &subject,
         );
-        let detail = strings.detail(&problem.detail);
         let count = if problem.count > 1 {
             canvas.text(
                 right_edge,
@@ -675,7 +705,7 @@ fn problems(canvas: &mut Canvas, view: &View) {
             Align::Left,
             DETAIL,
             right_edge - count - left,
-            &detail,
+            &detail_text,
         );
     }
 
@@ -696,33 +726,29 @@ fn problems(canvas: &mut Canvas, view: &View) {
             Some(worst),
         );
         let left = MARGIN + 34.0;
-        let (title_baseline, detail_baseline) =
-            two_line_baselines(y, row_height, TITLE, DETAIL, 12.0);
         let total: u32 = rest.iter().map(|problem| problem.count.max(1)).sum();
-        canvas.text(
-            left,
-            title_baseline,
-            Align::Left,
-            TITLE,
-            &strings.tf(
-                "problems.more_line",
-                &[
-                    ("count", &rest.len().to_string()),
-                    ("alerts", &total.to_string()),
-                ],
-            ),
+        let more = strings.tf(
+            "problems.more_line",
+            &[
+                ("count", &rest.len().to_string()),
+                ("alerts", &total.to_string()),
+            ],
         );
         let names: Vec<String> = rest
             .iter()
             .map(|problem| strings.subject(&problem.subject).to_owned())
             .collect();
+        let joined = names.join(", ");
+        let (more_baseline, detail_baseline) =
+            two_line_baselines(y, row_height, TITLE, &more, DETAIL, &joined, 12.0);
+        canvas.text(left, more_baseline, Align::Left, TITLE, &more);
         canvas.text_fit(
             left,
             detail_baseline,
             Align::Left,
             DETAIL,
             WIDTH - MARGIN - PAD - left,
-            &names.join(", "),
+            &joined,
         );
     }
 }
@@ -753,21 +779,27 @@ fn ci(canvas: &mut Canvas, view: &View) {
             Tone::Normal => TEXT,
             tone => tone_color(tone),
         });
+        let clock_text = stopwatch(elapsed);
         let clock_width = canvas.text(
             right_edge,
-            y + row_height / 2.0 + Canvas::cap_height(clock_style) / 2.0,
+            center_baseline(y, row_height, clock_style, &clock_text),
             Align::Right,
             clock_style,
-            &stopwatch(elapsed),
+            &clock_text,
         );
         let max = right_edge - clock_width - 24.0 - left;
         let repo = pipeline
             .repo
             .rsplit_once('/')
             .map_or(pipeline.repo.as_str(), |(_, name)| name);
-        let (title_baseline, detail_baseline) =
-            two_line_baselines(y, row_height, TITLE, DETAIL, 12.0);
+        let detail = [pipeline.steps.join(", "), pipeline.branch.clone()]
+            .into_iter()
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>()
+            .join(" · ");
         let (fitted, text) = fit(TITLE, MIN_SIZE, max, repo);
+        let (title_baseline, detail_baseline) =
+            two_line_baselines(y, row_height, fitted, &text, DETAIL, &detail, 12.0);
         let width = canvas.text(left, title_baseline, Align::Left, fitted, &text);
         let number = format!("#{}", pipeline.number);
         if width + 12.0 + Canvas::measure(LABEL, &number) <= max {
@@ -791,7 +823,6 @@ fn ci(canvas: &mut Canvas, view: &View) {
     if queued > 0 || hidden > 0 {
         let y = row_y(shown);
         card(canvas, MARGIN, y, WIDTH - 2.0 * MARGIN, row_height, None);
-        let baseline = center_baseline(y, row_height, TITLE);
         let mut parts = Vec::new();
         if queued > 0 {
             parts.push(format!("{} {queued}", strings.t("ci.queue")));
@@ -810,16 +841,18 @@ fn ci(canvas: &mut Canvas, view: &View) {
             .oldest_queued_secs
             .filter(|_| queued > 0)
             .map_or(Tone::Normal, |oldest| view.ci_tone(oldest as i64));
+        let line = parts.join(" · ");
+        let style = TITLE.color(match wait_tone {
+            Tone::Normal => MUTED,
+            tone => tone_color(tone),
+        });
         canvas.text_fit(
             left,
-            baseline,
+            center_baseline(y, row_height, style, &line),
             Align::Left,
-            TITLE.color(match wait_tone {
-                Tone::Normal => MUTED,
-                tone => tone_color(tone),
-            }),
+            style,
             right_edge - left,
-            &parts.join(" · "),
+            &line,
         );
     }
 }
@@ -845,7 +878,7 @@ fn row_panel(canvas: &mut Canvas, y: f32, height: f32) {
 
 fn table_header(canvas: &mut Canvas, columns: &[(f32, Align, &str)]) -> f32 {
     let style = LABEL.size(MIN_SIZE);
-    let baseline = BODY_TOP + 2.0 + Canvas::cap_height(style);
+    let baseline = BODY_TOP + HEADER_INSET * 0.6 + Canvas::cap_height(style);
     for (x, align, text) in columns {
         canvas.text(*x, baseline, *align, style, text);
     }
@@ -959,7 +992,43 @@ fn zfs(canvas: &mut Canvas, view: &View) {
     let mut y = BODY_TOP;
     for pool in &snapshot.pools {
         row_panel(canvas, y, pool_height);
-        let baseline = y + pool_height / 2.0 + Canvas::cap_height(TITLE) / 2.0;
+        let healthy = pool.health == "ONLINE" && pool.errors == 0 && pool.bad_devices.is_empty();
+        let mut parts = vec![pool.health.clone()];
+        if pool.total > 0 {
+            parts.push(format!(
+                "{} {} {} {}",
+                strings.t("zfs.free_of"),
+                strings.bytes(pool.total.saturating_sub(pool.used)),
+                strings.t("home.of"),
+                strings.bytes(pool.total)
+            ));
+        }
+        let (scan_text, color) = match &pool.scan {
+            Some(scan) => {
+                let mut text = format!("{} {:.0}%", scan_name(scan.kind), scan.percent);
+                if scan.paused {
+                    text.push_str(&format!(" {}", strings.t("home.paused")));
+                } else if let Some(eta) = scan.eta_secs {
+                    text.push_str(&format!(
+                        " {} {}",
+                        strings.t("zfs.eta"),
+                        strings.age(eta as i64)
+                    ));
+                }
+                (Some(text), AMBER)
+            }
+            None => (None, if healthy { GREEN } else { RED }),
+        };
+        parts.extend(scan_text.clone());
+        let details = parts.join(" · ");
+        let baseline = center_baseline_pair(
+            y,
+            pool_height,
+            TITLE,
+            &pool.name,
+            DETAIL.color(color),
+            &details,
+        );
         let name_width = canvas.text(MARGIN + PAD, baseline, Align::Left, TITLE, &pool.name);
         let healthy = pool.health == "ONLINE" && pool.errors == 0 && pool.bad_devices.is_empty();
         let mut parts = vec![pool.health.clone()];
@@ -1011,7 +1080,7 @@ fn zfs(canvas: &mut Canvas, view: &View) {
         return;
     }
     panel.panel(canvas);
-    let header_baseline = panel.y + 10.0 + Canvas::cap_height(LABEL);
+    let header_baseline = panel.y + HEADER_INSET + Canvas::cap_height(LABEL);
     canvas.text(
         MARGIN + PAD,
         header_baseline,
@@ -1337,12 +1406,12 @@ fn phase_frame(
     for (row, item) in rows.iter().take(shown).enumerate() {
         let y = top + row as f32 * (row_h + GAP);
         card(canvas, list_x, y, list_w, row_h, None);
-        let baseline = center_baseline(y, row_h, TITLE.size(size));
+        let style = TITLE.size(size).color(item.color);
         canvas.text_fit(
             list_x + PAD,
-            baseline,
+            center_baseline(y, row_h, style, &item.text),
             Align::Left,
-            TITLE.size(size).color(item.color),
+            style,
             list_w - 2.0 * PAD,
             &item.text,
         );
@@ -1350,14 +1419,14 @@ fn phase_frame(
     if overflow {
         let y = top + shown as f32 * (row_h + GAP);
         card(canvas, list_x, y, list_w, row_h, None);
-        let baseline = center_baseline(y, row_h, TITLE.size(size));
-        canvas.text_fit(
+        let style = TITLE.size(size).color(MUTED);
+        let more = strings.tf("alarm.more", &[("n", &(rows.len() - shown).to_string())]);
+        canvas.text(
             list_x + PAD,
-            baseline,
+            center_baseline(y, row_h, style, &more),
             Align::Left,
-            TITLE.size(size).color(MUTED),
-            list_w - 2.0 * PAD,
-            &strings.tf("alarm.more", &[("n", &(rows.len() - shown).to_string())]),
+            style,
+            &more,
         );
     }
 }
@@ -1702,6 +1771,150 @@ mod tests {
             &I18n::english(),
         );
         assert_eq!(frame.dimensions(), asterctl_lcd::DISPLAY_SIZE);
+    }
+
+    // ------------------------------------------------- pixel-perfect checks
+
+    /// Rows of `panel`-colored pixels along a vertical scan line.
+    fn panel_runs(img: &image::RgbImage, x: u32, panel: Rgb) -> Vec<(u32, u32)> {
+        let mut runs = Vec::new();
+        let mut start = None;
+        for y in 0..img.height() {
+            let px = img.get_pixel(x, y).0;
+            let is_panel = (px[0] as i32 - panel.0 as i32).abs() < 12
+                && (px[1] as i32 - panel.1 as i32).abs() < 12
+                && (px[2] as i32 - panel.2 as i32).abs() < 12;
+            if is_panel && start.is_none() {
+                start = Some(y);
+            } else if !is_panel && let Some(s) = start {
+                runs.push((s, y - 1));
+                start = None;
+            }
+        }
+        if let Some(s) = start {
+            runs.push((s, img.height() - 1));
+        }
+        runs.into_iter().filter(|(a, b)| b - a > 20).collect()
+    }
+
+    /// First and last row with ink (non-panel pixels) inside a card region.
+    fn ink_span(img: &image::RgbImage, x0: u32, x1: u32, y0: u32, y1: u32) -> (u32, u32) {
+        let panel = PANEL;
+        let mut top = u32::MAX;
+        let mut bottom = 0;
+        for y in y0..=y1 {
+            for x in x0..x1 {
+                let px = img.get_pixel(x, y).0;
+                let diff = (px[0] as i32 - i32::from(panel.0))
+                    .abs()
+                    .max((px[1] as i32 - i32::from(panel.1)).abs())
+                    .max((px[2] as i32 - i32::from(panel.2)).abs());
+                if diff > 60 {
+                    top = top.min(y);
+                    bottom = bottom.max(y);
+                }
+            }
+        }
+        (top, bottom)
+    }
+
+    fn assert_rows_symmetric(img: &image::RgbImage, scan_x: u32, ink_x0: u32, ink_x1: u32) {
+        for (y0, y1) in panel_runs(img, scan_x, PANEL) {
+            let (top, bottom) = ink_span(img, ink_x0, ink_x1, y0 + 2, y1 - 2);
+            assert!(
+                top != u32::MAX,
+                "no ink in card {y0}..{y1} at scan {scan_x}"
+            );
+            let upper = top - y0;
+            let lower = y1 - bottom;
+            assert!(
+                (upper as i32 - lower as i32).abs() <= 2,
+                "card {y0}..{y1}: top pad {upper} != bottom pad {lower}"
+            );
+        }
+    }
+
+    #[test]
+    fn problems_rows_are_pixel_symmetric() {
+        let config = config();
+        let mut snapshot: Snapshot =
+            serde_json::from_str(include_str!("../../../aoostar-lcd/fixtures/busy.json")).unwrap();
+        snapshot.host.uptime_secs = Some(90);
+        let img = render(
+            Page::Problems,
+            &snapshot,
+            &config,
+            0,
+            (1, 10),
+            true,
+            &I18n::english(),
+        );
+        assert_rows_symmetric(&img, 30, MARGIN as u32 + 40, 900);
+    }
+
+    #[test]
+    fn phase_rows_are_pixel_symmetric() {
+        let config = config();
+        let mut snapshot: Snapshot =
+            serde_json::from_str(include_str!("../../../aoostar-lcd/fixtures/boot.json")).unwrap();
+        snapshot.host.uptime_secs = Some(47);
+        let img = render(
+            Page::Startup,
+            &snapshot,
+            &config,
+            0,
+            (0, 1),
+            true,
+            &I18n::english(),
+        );
+        assert_rows_symmetric(&img, 385, 395, 940);
+    }
+
+    #[test]
+    fn home_meter_keeps_panel_padding() {
+        let config = config();
+        let snapshot: Snapshot =
+            serde_json::from_str(include_str!("../../../aoostar-lcd/fixtures/healthy.json"))
+                .unwrap();
+        let img = render(
+            Page::Home,
+            &snapshot,
+            &config,
+            0,
+            (0, 10),
+            true,
+            &I18n::english(),
+        );
+        // The tile grid is known: 2x2 below the status bar.
+        let tile_h = (BODY_HEIGHT - GAP) / 2.0;
+        let tiles = [
+            (BODY_TOP as u32, (BODY_TOP + tile_h) as u32),
+            (
+                (BODY_TOP + tile_h + GAP) as u32,
+                (BODY_TOP + 2.0 * tile_h + GAP) as u32,
+            ),
+        ];
+        for (y0, y1) in tiles {
+            // The meter track differs from the panel; find its last row.
+            let track = TRACK;
+            let mut meter_bottom = 0;
+            for y in (y1 - 40)..=y1 {
+                let px = img.get_pixel(150, y).0;
+                let diff = (px[0] as i32 - i32::from(track.0))
+                    .abs()
+                    .max((px[1] as i32 - i32::from(track.1)).abs())
+                    .max((px[2] as i32 - i32::from(track.2)).abs());
+                if diff < 8 {
+                    meter_bottom = meter_bottom.max(y);
+                }
+            }
+            assert!(meter_bottom > 0, "no meter in tile {y0}..{y1}");
+            let inset = y1 - meter_bottom;
+            assert!(
+                (inset as i32 - PAD as i32).abs() <= 1,
+                "meter bottom inset {inset} != PAD {PAD}"
+            );
+        }
     }
 
     #[test]

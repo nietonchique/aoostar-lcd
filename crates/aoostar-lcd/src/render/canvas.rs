@@ -204,6 +204,35 @@ impl Canvas {
         style.size * 0.711
     }
 
+    /// Exact ink extents of `text`: how far the drawn pixels reach above
+    /// and below the baseline. Vertical centring must use this, not a
+    /// size ratio: without descenders the block would sit too low, without
+    /// overshoot digits (Å) too high.
+    pub fn ink_box(style: Style, text: &str) -> (f32, f32) {
+        let font = font(style.weight);
+        let scale = PxScale::from(style.size);
+        let scaled = font.as_scaled(scale);
+        let mut top = 0.0_f32;
+        let mut bottom = 0.0_f32;
+        let mut caret = 0.0;
+        let mut previous = None;
+        for ch in text.chars() {
+            let id = scaled.glyph_id(ch);
+            if let Some(previous) = previous {
+                caret += scaled.kern(previous, id);
+            }
+            let glyph = id.with_scale_and_position(scale, point(caret, 0.0));
+            caret += scaled.h_advance(id);
+            previous = Some(id);
+            if let Some(outlined) = font.outline_glyph(glyph) {
+                let bounds = outlined.px_bounds();
+                top = top.min(bounds.min.y);
+                bottom = bottom.max(bounds.max.y);
+            }
+        }
+        (-top, bottom)
+    }
+
     /// Draws `text` with its baseline at `baseline`; returns the drawn width.
     pub fn text(&mut self, x: f32, baseline: f32, align: Align, style: Style, text: &str) -> f32 {
         let width = Self::measure(style, text);

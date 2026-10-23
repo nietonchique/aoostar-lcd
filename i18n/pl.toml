@@ -1,0 +1,117 @@
+# Polish UI strings.
+
+name = "Polski"
+plural_family = "pl"
+
+[status]
+all_running = "WSZYSTKO DZIAŁA"
+down = "NIE DZIAŁA"
+problem = "PROBLEM"
+maintenance = "KONSERWACJA"
+alerts = "alerty"
+alerts_unknown = "alerty ?"
+
+[units]
+second = "s"
+minute = "min"
+hour = "godz."
+day = "d"
+watt = "W"
+rate = "MB/s"
+bytes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+[alarm]
+title = "ALARM"
+missing = "brak"
+smart_failed = "SMART BŁĄD"
+service_down = "leży"
+more = "i {n} więcej"
+
+[home]
+load = "obc."
+free_ram = "WOLNY RAM"
+of = "z"
+idle = "spokojnie"
+max = "maks."
+paused = "pauza"
+read = "odczyt"
+write = "zapis"
+smart_test = "test SMART"
+
+[problems]
+none = "brak problemów"
+alerts_word = "alertów"
+more_line = "jeszcze {count} · {alerts} alertów"
+
+[ci]
+none = "brak buildów"
+queue = "kolejka"
+waiting = "czeka"
+more_running = "jeszcze {n} trwa"
+
+[hdd]
+disk = "dysk"
+busy = "obciążenie"
+read = "odczyt MB/s"
+write = "zapis MB/s"
+missing = "brak dysku"
+self_test = "test"
+none = "brak skonfigurowanych HDD"
+
+[zfs]
+free_of = "wolne"
+eta = "jeszcze"
+activity = "kto obciąża HDD, MB/s"
+datasets_idle = "zestawy danych bezczynne"
+
+[temps]
+ram = "RAM"
+fan = "WENTYLATOR"
+gone = "brak"
+
+[load]
+memory = "PAMIĘĆ · wolne"
+no_data = "brak danych"
+
+[space]
+none = "brak wolumenów"
+gone = "brak"
+
+[phase]
+startup = "URUCHAMIANIE"
+uptime = "od uruchomienia"
+all_up = "usługi działają"
+shutdown = "WYŁĄCZANIE"
+reboot = "PONOWNE URUCHOMIENIE"
+elapsed = "minęło"
+all_stopped = "wszystkie usługi zatrzymane"
+status_unavailable = "status niedostępny"
+
+[plurals]
+services_up.one = "usługa działa"
+services_up.few = "usługi działają"
+services_up.many = "usług działa"
+services_up.other = "usług działa"
+services_stopped.one = "usługa zatrzymana"
+services_stopped.few = "usługi zatrzymane"
+services_stopped.many = "usług zatrzymanych"
+services_stopped.other = "usług zatrzymanych"
+containers.one = "{n} kontener"
+containers.few = "{n} kontenery"
+containers.many = "{n} kontenerów"
+containers.other = "{n} kontenerów"
+
+[details]
+"stack inactive" = "stos nieuruchomiony"
+"unit failed" = "usługa padła"
+"unit missing" = "brak usługi"
+"unit inactive" = "usługa nieaktywna"
+"container unhealthy" = "kontener niezdrowy"
+"container restarting" = "kontener restartuje się"
+"maintenance" = "konserwacja"
+"alerts unavailable" = "alerty niedostępne"
+"pool errors" = "błędy puli"
+pool_prefix = "pula "
+
+[subjects]
+"failed jobs" = "awarie zadań"

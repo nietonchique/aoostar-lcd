@@ -32,17 +32,49 @@ pub struct I18n {
 enum PluralFamily {
     /// one / other
     En,
-    /// one / few / many / other
+    /// one / few / many / other (Russian, Ukrainian, Polish)
     Ru,
+    /// No plural distinction (Chinese, Korean); every count uses "other".
+    None,
+}
+
+/// The language part of a locale value: `ru_RU.UTF-8` -> `ru`, `zh_CN` ->
+/// `zh`. `C`, `POSIX` and empty values have no language.
+fn base_locale(value: &str) -> Option<String> {
+    let base = value
+        .split(['.', '_', '@'])
+        .next()?
+        .trim()
+        .to_ascii_lowercase();
+    (!base.is_empty() && base != "c" && base != "posix").then_some(base)
+}
+
+/// The system language from the locale environment, if it names one.
+fn detect_language() -> Option<String> {
+    ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .filter_map(|var| std::env::var(var).ok())
+        .find_map(|value| base_locale(&value))
 }
 
 impl I18n {
     /// Loads the configured language, falling back to English, then to the
-    /// key itself for anything still missing.
+    /// key itself for anything still missing. `auto` follows the system
+    /// locale and silently falls back to English when it names a language
+    /// without a table.
     pub fn load(config: &Config) -> anyhow::Result<Self> {
-        let language = config.display.language.as_str();
+        let requested = config.display.language.as_str();
+        let auto = requested == "auto";
+        let language = if auto {
+            detect_language().unwrap_or_else(|| "en".to_owned())
+        } else {
+            requested.to_owned()
+        };
         let mut i18n = Self::english();
-        let Some(table) = read_table(language, config.display.i18n_dir.as_deref()) else {
+        let Some(table) = read_table(&language, config.display.i18n_dir.as_deref()) else {
+            if auto {
+                return Ok(i18n);
+            }
             let mut known: Vec<String> = EMBEDDED
                 .files()
                 .filter(|file| file.path().extension().is_some_and(|e| e == "toml"))
@@ -125,7 +157,8 @@ impl I18n {
         };
         if let Some(family) = root.get("plural_family").and_then(|v| v.as_str()) {
             self.plurals = match family {
-                "ru" => PluralFamily::Ru,
+                "ru" | "uk" | "pl" => PluralFamily::Ru,
+                "none" => PluralFamily::None,
                 _ => PluralFamily::En,
             };
         }
@@ -208,6 +241,7 @@ impl I18n {
     /// Plural phrase with the count substituted.
     pub fn tn(&self, key: &str, n: u64) -> String {
         let category = match (self.plurals, n % 100, n % 10) {
+            (PluralFamily::None, _, _) => "other",
             (PluralFamily::En, 1, _) => "one",
             (PluralFamily::En, _, _) => "other",
             (PluralFamily::Ru, 11..=14, _) => "many",

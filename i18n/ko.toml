@@ -1,0 +1,108 @@
+# 한국어 UI 문자열.
+
+name = "한국어"
+plural_family = "none"
+
+[status]
+all_running = "모두 정상"
+down = "중단됨"
+problem = "문제"
+maintenance = "유지보수"
+alerts = "알림"
+alerts_unknown = "알림 ?"
+
+[units]
+second = "초"
+minute = "분"
+hour = "시"
+day = "일"
+watt = "W"
+rate = "MB/s"
+bytes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+[alarm]
+title = "경보"
+missing = "없음"
+smart_failed = "SMART 실패"
+service_down = "다운"
+more = "외 {n}건"
+
+[home]
+load = "부하"
+free_ram = "여유 RAM"
+of = "중"
+idle = "유휴"
+max = "최고"
+paused = "일시정지"
+read = "읽기"
+write = "쓰기"
+smart_test = "SMART 테스트"
+
+[problems]
+none = "문제 없음"
+alerts_word = "알림"
+more_line = "외 {count}건 · 알림 {alerts}건"
+
+[ci]
+none = "빌드 없음"
+queue = "대기열"
+waiting = "대기 중"
+more_running = "{n}건 더 실행 중"
+
+[hdd]
+disk = "디스크"
+busy = "사용률"
+read = "읽기 MB/s"
+write = "쓰기 MB/s"
+missing = "디스크 없음"
+self_test = "테스트"
+none = "HDD 미설정"
+
+[zfs]
+free_of = "여유"
+eta = "남음"
+activity = "HDD를 사용 중, MB/s"
+datasets_idle = "데이터셋 유휴"
+
+[temps]
+ram = "RAM"
+fan = "팬"
+gone = "없음"
+
+[load]
+memory = "메모리 · 여유"
+no_data = "데이터 없음"
+
+[space]
+none = "볼륨 미설정"
+gone = "없음"
+
+[phase]
+startup = "부팅"
+uptime = "부팅 후"
+all_up = "서비스 가동 중"
+shutdown = "종료"
+reboot = "재부팅"
+elapsed = "경과"
+all_stopped = "모든 서비스 중지됨"
+status_unavailable = "상태를 가져올 수 없음"
+
+[plurals]
+services_up.other = "개 서비스 가동"
+services_stopped.other = "개 서비스 중지"
+containers.other = "{n}개 컨테이너"
+
+[details]
+"stack inactive" = "스택 중지됨"
+"unit failed" = "유닛 실패"
+"unit missing" = "유닛 없음"
+"unit inactive" = "유닛 비활성"
+"container unhealthy" = "컨테이너 비정상"
+"container restarting" = "컨테이너 재시작 중"
+"maintenance" = "유지보수"
+"alerts unavailable" = "알림 접근 불가"
+"pool errors" = "풀 오류"
+pool_prefix = "풀 "
+
+[subjects]
+"failed jobs" = "실패한 작업"

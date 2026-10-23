@@ -1,0 +1,111 @@
+# Deutsche UI-Texte.
+
+name = "Deutsch"
+plural_family = "en"
+
+[status]
+all_running = "ALLES LÄUFT"
+down = "AUSGEFALLEN"
+problem = "PROBLEM"
+maintenance = "WARTUNG"
+alerts = "Alerts"
+alerts_unknown = "Alerts ?"
+
+[units]
+second = "s"
+minute = "min"
+hour = "h"
+day = "d"
+watt = "W"
+rate = "MB/s"
+bytes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+[alarm]
+title = "ALARM"
+missing = "fehlt"
+smart_failed = "SMART FEHLER"
+service_down = "liegt"
+more = "und {n} weitere"
+
+[home]
+load = "Last"
+free_ram = "FREIES RAM"
+of = "von"
+idle = "ruhig"
+max = "max"
+paused = "pausiert"
+read = "Lesen"
+write = "Schreiben"
+smart_test = "SMART-Test"
+
+[problems]
+none = "keine Probleme"
+alerts_word = "Alerts"
+more_line = "noch {count} · {alerts} Alerts"
+
+[ci]
+none = "keine Builds"
+queue = "Warteschlange"
+waiting = "wartet"
+more_running = "{n} weitere laufen"
+
+[hdd]
+disk = "Disk"
+busy = "Last"
+read = "Lesen MB/s"
+write = "Schreiben MB/s"
+missing = "keine Disk"
+self_test = "Test"
+none = "keine HDDs konfiguriert"
+
+[zfs]
+free_of = "frei"
+eta = "Rest"
+activity = "wer lastet die HDDs, MB/s"
+datasets_idle = "Datensätze inaktiv"
+
+[temps]
+ram = "RAM"
+fan = "LÜFTER"
+gone = "weg"
+
+[load]
+memory = "SPEICHER · frei"
+no_data = "keine Daten"
+
+[space]
+none = "keine Volumes konfiguriert"
+gone = "weg"
+
+[phase]
+startup = "START"
+uptime = "seit Start"
+all_up = "Dienste laufen"
+shutdown = "HERUNTERFAHREN"
+reboot = "NEUSTART"
+elapsed = "vergangen"
+all_stopped = "alle Dienste gestoppt"
+status_unavailable = "Status nicht verfügbar"
+
+[plurals]
+services_up.one = "Dienst läuft"
+services_up.other = "Dienste laufen"
+services_stopped.one = "Dienst gestoppt"
+services_stopped.other = "Dienste gestoppt"
+containers.one = "{n} Container"
+containers.other = "{n} Container"
+
+[details]
+"stack inactive" = "Stack gestoppt"
+"unit failed" = "Unit fehlgeschlagen"
+"unit missing" = "Unit fehlt"
+"unit inactive" = "Unit inaktiv"
+"container unhealthy" = "Container fehlerhaft"
+"container restarting" = "Container startet neu"
+"maintenance" = "Wartung"
+"alerts unavailable" = "Alerts nicht erreichbar"
+"pool errors" = "Pool-Fehler"
+pool_prefix = "Pool "
+
+[subjects]
+"failed jobs" = "fehlgeschlagene Jobs"

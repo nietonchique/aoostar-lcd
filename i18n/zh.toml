@@ -1,0 +1,108 @@
+# 简体中文界面文本。
+
+name = "简体中文"
+plural_family = "none"
+
+[status]
+all_running = "一切正常"
+down = "已停止"
+problem = "问题"
+maintenance = "维护"
+alerts = "警报"
+alerts_unknown = "警报 ?"
+
+[units]
+second = "秒"
+minute = "分"
+hour = "时"
+day = "天"
+watt = "W"
+rate = "MB/s"
+bytes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+[alarm]
+title = "报警"
+missing = "丢失"
+smart_failed = "SMART 故障"
+service_down = "已停机"
+more = "另有 {n} 项"
+
+[home]
+load = "负载"
+free_ram = "剩余内存"
+of = "共"
+idle = "空闲"
+max = "最高"
+paused = "已暂停"
+read = "读"
+write = "写"
+smart_test = "SMART 测试"
+
+[problems]
+none = "暂无问题"
+alerts_word = "警报"
+more_line = "还有 {count} 项 · {alerts} 个警报"
+
+[ci]
+none = "无构建任务"
+queue = "队列"
+waiting = "等待中"
+more_running = "另有 {n} 个在运行"
+
+[hdd]
+disk = "磁盘"
+busy = "负载"
+read = "读 MB/s"
+write = "写 MB/s"
+missing = "无磁盘"
+self_test = "测试"
+none = "未配置 HDD"
+
+[zfs]
+free_of = "剩余"
+eta = "剩余时间"
+activity = "谁在占用 HDD, MB/s"
+datasets_idle = "数据集空闲"
+
+[temps]
+ram = "内存"
+fan = "风扇"
+gone = "无"
+
+[load]
+memory = "内存 · 剩余"
+no_data = "暂无数据"
+
+[space]
+none = "未配置卷"
+gone = "无"
+
+[phase]
+startup = "启动"
+uptime = "开机时长"
+all_up = "服务已就绪"
+shutdown = "关机"
+reboot = "重启"
+elapsed = "已用"
+all_stopped = "所有服务已停止"
+status_unavailable = "状态不可用"
+
+[plurals]
+services_up.other = "个服务已启动"
+services_stopped.other = "个服务已停止"
+containers.other = "{n} 个容器"
+
+[details]
+"stack inactive" = "栈已停止"
+"unit failed" = "单元失败"
+"unit missing" = "单元缺失"
+"unit inactive" = "单元未运行"
+"container unhealthy" = "容器异常"
+"container restarting" = "容器重启中"
+"maintenance" = "维护"
+"alerts unavailable" = "警报不可用"
+"pool errors" = "存储池错误"
+pool_prefix = "存储池 "
+
+[subjects]
+"failed jobs" = "失败的任务"
