@@ -63,15 +63,15 @@ jobs:
       - name: Package binary tarball
         run: |
           dir="aoostar-lcd-${GITHUB_REF_NAME}-${TRIPLE}"
-          mkdir -p "dist/${dir}"
-          install -m755 target/release/aoostar-lcd "dist/${dir}/aoostar-lcd"
-          strip "dist/${dir}/aoostar-lcd"
-          install -m644 config.example.toml "dist/${dir}/"
-          install -m644 packaging/systemd/aoostar-lcd.service "dist/${dir}/"
-          install -m644 README.md README.ru.md "dist/${dir}/"
-          install -m644 LICENSE-MIT LICENSE-APACHE "dist/${dir}/"
-          tar -C dist -czf "dist/${dir}.tar.gz" "${dir}"
-          rm -rf "dist/${dir}"
+          mkdir -p "out/${dir}"
+          install -m755 target/release/aoostar-lcd "out/${dir}/aoostar-lcd"
+          strip "out/${dir}/aoostar-lcd"
+          install -m644 config.example.toml "out/${dir}/"
+          install -m644 packaging/systemd/aoostar-lcd.service "out/${dir}/"
+          install -m644 README.md README.ru.md "out/${dir}/"
+          install -m644 LICENSE-MIT LICENSE-APACHE "out/${dir}/"
+          tar -C out -czf "out/${dir}.tar.gz" "${dir}"
+          rm -rf "out/${dir}"
 
       # Both tools run from crates/aoostar-lcd (workspace root has no [package]).
       # cargo-deb resolves the workspace target dir itself; cargo-generate-rpm
@@ -86,14 +86,14 @@ jobs:
 
       - name: Collect artifacts
         run: |
-          cp target/debian/*.deb dist/
-          cp crates/aoostar-lcd/target/generate-rpm/*.rpm dist/
-          ls -l dist/
+          cp target/debian/*.deb out/
+          cp crates/aoostar-lcd/target/generate-rpm/*.rpm out/
+          ls -l out/
 
       - uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist/*
+          path: out/*
           if-no-files-found: error
 
   release:
@@ -106,15 +106,15 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dist
-          path: dist
+          path: out
 
       - name: Checksums
-        working-directory: dist
+        working-directory: out
         run: sha256sum * > SHA256SUMS.txt
 
       - uses: softprops/action-gh-release@v3
         with:
-          files: dist/*
+          files: out/*
           generate_release_notes: true
           fail_on_unmatched_files: true
           prerelease: ${{ contains(github.ref_name, '-') }}
