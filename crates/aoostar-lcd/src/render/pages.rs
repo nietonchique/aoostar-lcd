@@ -425,8 +425,10 @@ fn card(canvas: &mut Canvas, x: f32, y: f32, w: f32, h: f32, accent: Option<Rgb>
 }
 
 /// Vertical baseline of a single line centered inside a row of height `h`.
+/// The baseline is the bottom of the caps: centering it means half the cap
+/// height ends up below the middle line.
 fn center_baseline(y: f32, h: f32, style: Style) -> f32 {
-    y + (h - Canvas::cap_height(style)) / 2.0
+    y + (h + Canvas::cap_height(style)) / 2.0
 }
 
 /// Baselines of a vertically centered title-over-detail block. Row content
@@ -802,7 +804,7 @@ fn ci(canvas: &mut Canvas, view: &View) {
             }
         }
         if hidden > 0 {
-            parts.push(strings.tn("ci.more_running", hidden as u64));
+            parts.push(strings.tf("ci.more_running", &[("n", &hidden.to_string())]));
         }
         let wait_tone = ci
             .oldest_queued_secs
@@ -1704,47 +1706,6 @@ mod tests {
 
     #[test]
     fn clock_applies_offset_and_wraps_midnight() {
-        // THROWAWAY: dump phase screenshots for docs, remove after.
-        shutdown_page(
-            Target::Reboot,
-            &I18n::english(),
-            &Progress {
-                total: 8,
-                stopped: 3,
-                pending: vec![
-                    "jellyfin".into(),
-                    "home-assistant".into(),
-                    "vaultwarden".into(),
-                ],
-                failed: vec!["nginx".into()],
-            },
-            true,
-            Some(11),
-            23,
-            false,
-        )
-        .save("/tmp/reboot.png")
-        .unwrap();
-        shutdown_page(
-            Target::Poweroff,
-            &I18n::english(),
-            &Progress {
-                total: 8,
-                stopped: 8,
-                pending: vec![],
-                failed: vec![],
-            },
-            true,
-            Some(0),
-            61,
-            true,
-        )
-        .save("/tmp/shutdown.png")
-        .unwrap();
-    }
-
-    #[test]
-    fn clock_applies_offset_and_wraps_midnight_real() {
         assert_eq!(clock_text(86_399, 0), "23:59");
         assert_eq!(clock_text(22 * 3600, 180), "01:00");
     }
