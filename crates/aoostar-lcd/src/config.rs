@@ -29,22 +29,18 @@ pub struct Config {
     pub ci: CiConfig,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Lang {
-    #[default]
-    En,
-    Ru,
-}
-
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DisplayConfig {
     /// Serial device of the front LCD.
     pub device: PathBuf,
-    /// Panel UI language.
+    /// Panel UI language: a code with an `i18n/<code>.toml` table, embedded
+    /// or found in `i18n_dir`.
+    #[serde(default = "default_language")]
+    pub language: String,
+    /// Extra or overridden translation tables (`<dir>/<code>.toml`).
     #[serde(default)]
-    pub language: Lang,
+    pub i18n_dir: Option<PathBuf>,
     /// Seconds each page stays on screen.
     #[serde(default = "default_page_seconds")]
     pub page_seconds: u64,
@@ -58,6 +54,10 @@ pub struct DisplayConfig {
 
 fn default_page_seconds() -> u64 {
     10
+}
+
+fn default_language() -> String {
+    "en".to_owned()
 }
 
 fn default_heartbeat() -> PathBuf {
@@ -263,7 +263,7 @@ mod tests {
     fn example_config_is_valid() {
         let text = include_str!("../../../config.example.toml");
         let config = Config::parse(text).unwrap();
-        assert_eq!(config.display.language, Lang::En);
+        assert_eq!(config.display.language, "en");
         assert!(config.services.units.contains(&"docker.service".to_owned()));
     }
 

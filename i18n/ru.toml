@@ -1,0 +1,118 @@
+# Русские строки интерфейса панели.
+
+name = "Русский"
+# Семейство правил множественного числа: "en" = one/other, "ru" = one/few/many/other.
+plural_family = "ru"
+
+[status]
+all_running = "ВСЁ РАБОТАЕТ"
+down = "НЕ РАБОТАЕТ"
+problem = "ПРОБЛЕМА"
+maintenance = "ОБСЛУЖИВАНИЕ"
+alerts = "алерты"
+alerts_unknown = "алерты ?"
+
+[units]
+second = "с"
+minute = "мин"
+hour = "ч"
+day = "д"
+watt = "Вт"
+rate = "МБ/с"
+bytes = ["Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ"]
+
+[alarm]
+title = "АВАРИЯ"
+missing = "пропал"
+smart_failed = "SMART отказ"
+service_down = "лежит"
+more = "и ещё {n}"
+
+[home]
+load = "загр."
+free_ram = "СВОБ. ОЗУ"
+of = "из"
+idle = "тихо"
+max = "макс."
+paused = "пауза"
+read = "чтение"
+write = "запись"
+smart_test = "SMART тест"
+
+[problems]
+none = "проблем нет"
+alerts_word = "алертов"
+more_line = "ещё {count} · алертов: {alerts}"
+
+[ci]
+none = "сборки не идут"
+queue = "очередь"
+waiting = "ждёт"
+more_running = "ещё идёт {n}"
+
+[hdd]
+disk = "диск"
+busy = "загрузка"
+read = "чтение МБ/с"
+write = "запись МБ/с"
+missing = "нет диска"
+self_test = "тест"
+none = "HDD не настроены"
+
+[zfs]
+free_of = "своб."
+eta = "ещё"
+activity = "кто нагружает HDD, МБ/с"
+datasets_idle = "датасеты без активности"
+
+[temps]
+ram = "ОЗУ"
+fan = "ВЕНТ"
+gone = "нет"
+
+[load]
+memory = "ПАМЯТЬ · своб."
+no_data = "нет данных"
+
+[space]
+none = "тома не настроены"
+gone = "нет"
+
+[phase]
+startup = "ЗАПУСК"
+uptime = "с загрузки"
+all_up = "службы работают"
+shutdown = "ВЫКЛЮЧЕНИЕ"
+reboot = "ПЕРЕЗАГРУЗКА"
+elapsed = "прошло"
+all_stopped = "все службы остановлены"
+status_unavailable = "статус недоступен"
+
+[plurals]
+services_up.one = "служба работает"
+services_up.few = "службы работают"
+services_up.many = "служб работает"
+services_up.other = "служб работает"
+services_stopped.one = "служба остановлена"
+services_stopped.few = "службы остановлены"
+services_stopped.many = "служб остановлено"
+services_stopped.other = "служб остановлено"
+containers.one = "{n} контейнер"
+containers.few = "{n} контейнера"
+containers.many = "{n} контейнеров"
+containers.other = "{n} контейнеров"
+
+[details]
+"stack inactive" = "стек не запущен"
+"unit failed" = "юнит упал"
+"unit missing" = "юнит отсутствует"
+"unit inactive" = "юнит не активен"
+"container unhealthy" = "контейнер нездоров"
+"container restarting" = "контейнер перезапускается"
+"maintenance" = "обслуживание"
+"alerts unavailable" = "алерты недоступны"
+"pool errors" = "ошибки пула"
+pool_prefix = "пул "
+
+[subjects]
+"failed jobs" = "сбой задач"

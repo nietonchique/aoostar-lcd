@@ -1,0 +1,105 @@
+# English UI strings. Copy this file, translate the values and name it with
+# your language code to add a panel language - no code changes needed.
+
+name = "English"
+# Plural rule family: "en" = one/other, "ru" = one/few/many/other.
+plural_family = "en"
+
+[status]
+all_running = "ALL RUNNING"
+down = "DOWN"
+problem = "PROBLEM"
+maintenance = "MAINTENANCE"
+alerts = "alerts"
+alerts_unknown = "alerts ?"
+
+[units]
+second = "s"
+minute = "min"
+hour = "h"
+day = "d"
+watt = "W"
+rate = "MB/s"
+bytes = ["B", "KB", "MB", "GB", "TB", "PB"]
+
+[alarm]
+title = "ALARM"
+missing = "missing"
+smart_failed = "SMART FAILED"
+service_down = "down"
+more = "and {n} more"
+
+[home]
+load = "load"
+free_ram = "FREE RAM"
+of = "of"
+idle = "idle"
+max = "max"
+paused = "paused"
+read = "read"
+write = "write"
+smart_test = "SMART test"
+
+[problems]
+none = "no problems"
+alerts_word = "alerts"
+more_line = "{count} more · {alerts} alerts"
+
+[ci]
+none = "no builds running"
+queue = "queue"
+waiting = "waiting"
+more_running = "{n} more running"
+
+[hdd]
+disk = "disk"
+busy = "busy"
+read = "read MB/s"
+write = "write MB/s"
+missing = "missing"
+self_test = "test"
+none = "no HDDs configured"
+
+[zfs]
+free_of = "free"
+eta = "eta"
+activity = "HDD activity, MB/s"
+datasets_idle = "datasets idle"
+
+[temps]
+ram = "RAM"
+fan = "FAN"
+gone = "gone"
+
+[load]
+memory = "MEMORY · free"
+no_data = "no data"
+
+[space]
+none = "no volumes configured"
+gone = "gone"
+
+[phase]
+startup = "STARTUP"
+uptime = "uptime"
+all_up = "all services up"
+shutdown = "SHUTDOWN"
+reboot = "REBOOT"
+elapsed = "elapsed"
+all_stopped = "all services stopped"
+status_unavailable = "status unavailable"
+
+# Plural phrases. Categories follow the family above; every phrase receives
+# the count as {n}.
+[plurals]
+services_up.one = "service up"
+services_up.other = "services up"
+services_stopped.other = "services stopped"
+containers.one = "container {n}"
+containers.other = "containers {n}"
+
+# Translations for collector detail keys; unknown keys pass through as-is.
+[details]
+
+# Translations for known non-service subjects.
+[subjects]

@@ -1,18 +1,16 @@
 {
-  "taken_at": 1792684800,
+  "taken_at": 1792740000,
   "host": {
     "uptime_secs": 74
   },
   "services": [
     { "subject": "docker", "active": true },
-    { "subject": "gitea", "active": true },
-    { "subject": "hostit-reverse-proxy", "active": true },
-    { "subject": "immich", "active": false },
+    { "subject": "grafana", "active": true },
+    { "subject": "nginx", "active": true },
+    { "subject": "home-assistant", "active": false },
     { "subject": "jellyfin", "active": false },
+    { "subject": "obsidian", "active": false },
     { "subject": "postgresql", "active": false },
-    { "subject": "rabbitmq", "active": false },
-    { "subject": "sentry-lite", "active": false },
-    { "subject": "vllm-server", "active": false },
-    { "subject": "woodpecker", "active": false }
+    { "subject": "vaultwarden", "active": false }
   ]
 }

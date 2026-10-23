@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use crate::config::Config;
 use crate::model::{Severity, Snapshot};
 
-use i18n::Strings;
+use i18n::I18n;
 
 pub use pages::{render, shutdown_page};
 
@@ -94,16 +94,20 @@ fn push_alarm(items: &mut Vec<AlarmItem>, what: &str, why: String) {
 /// Hardware alarms: a configured disk missing or SMART-failed, a pool leaf
 /// device not `ONLINE`, a pool not `ONLINE`. True in every phase, including
 /// the boot window.
-pub fn hardware_alarms(snapshot: &Snapshot, strings: &Strings) -> Vec<AlarmItem> {
+pub fn hardware_alarms(snapshot: &Snapshot, strings: &I18n) -> Vec<AlarmItem> {
     let mut items: Vec<AlarmItem> = Vec::new();
     for disk in &snapshot.disks {
         if !disk.present {
-            push_alarm(&mut items, &disk.label, strings.alarm_missing.to_owned());
+            push_alarm(
+                &mut items,
+                &disk.label,
+                strings.t("alarm.missing").to_owned(),
+            );
         } else if disk.smart_failed {
             push_alarm(
                 &mut items,
                 &disk.label,
-                strings.alarm_smart_failed.to_owned(),
+                strings.t("alarm.smart_failed").to_owned(),
             );
         }
     }
@@ -120,7 +124,7 @@ pub fn hardware_alarms(snapshot: &Snapshot, strings: &Strings) -> Vec<AlarmItem>
 
 /// Critical services down without a maintenance flag. Expected while the
 /// system is booting, so the startup page suppresses them until it ends.
-pub fn service_alarms(snapshot: &Snapshot, strings: &Strings) -> Vec<AlarmItem> {
+pub fn service_alarms(snapshot: &Snapshot, strings: &I18n) -> Vec<AlarmItem> {
     let mut items: Vec<AlarmItem> = Vec::new();
     let pool_names: Vec<&str> = snapshot
         .pools
@@ -132,8 +136,8 @@ pub fn service_alarms(snapshot: &Snapshot, strings: &Strings) -> Vec<AlarmItem> 
         {
             push_alarm(
                 &mut items,
-                &strings.subject(&problem.subject),
-                strings.alarm_service_down.to_owned(),
+                strings.subject(&problem.subject),
+                strings.t("alarm.service_down").to_owned(),
             );
         }
     }
@@ -141,7 +145,7 @@ pub fn service_alarms(snapshot: &Snapshot, strings: &Strings) -> Vec<AlarmItem> 
 }
 
 /// Every alarm line: hardware first, then services.
-pub fn alarms(snapshot: &Snapshot, strings: &Strings) -> Vec<AlarmItem> {
+pub fn alarms(snapshot: &Snapshot, strings: &I18n) -> Vec<AlarmItem> {
     let mut items = hardware_alarms(snapshot, strings);
     items.extend(service_alarms(snapshot, strings));
     items
@@ -180,8 +184,7 @@ pub fn ci_relevant(snapshot: &Snapshot) -> bool {
 
 /// Pages for the current state. An alarm replaces everything; otherwise
 /// contextual pages follow Home, then the calm detail pages.
-pub fn plan(snapshot: &Snapshot, config: &Config) -> Vec<Page> {
-    let strings = i18n::Strings::get(config.display.language);
+pub fn plan(snapshot: &Snapshot, config: &Config, strings: &I18n) -> Vec<Page> {
     // Broken hardware is true in every phase. Services that are not up yet
     // are what booting looks like, so the startup page owns them.
     if !hardware_alarms(snapshot, strings).is_empty() {
@@ -227,10 +230,11 @@ impl Rotation {
         &mut self,
         snapshot: &Snapshot,
         config: &Config,
+        strings: &I18n,
         now: Instant,
     ) -> (Page, usize, usize) {
         let current = self.plan[self.index];
-        let next_plan = plan(snapshot, config);
+        let next_plan = plan(snapshot, config, strings);
         if next_plan != self.plan {
             // Keep showing the same page if it is still relevant.
             self.index = next_plan
@@ -258,6 +262,12 @@ fn dwell(page: Page, config: &Config) -> Duration {
 
 /// Renders every page of a snapshot (offline preview).
 pub fn render_all(snapshot: &Snapshot, config: &Config, now_unix: i64) -> Vec<(Page, RgbImage)> {
+    let strings = match I18n::load(config) {
+        Ok(strings) => strings,
+        // A broken language table must not take check/preview down: fall
+        // back to English and let the error surface in run.
+        Err(_) => I18n::english(),
+    };
     Page::ALL
         .iter()
         .enumerate()
@@ -271,6 +281,7 @@ pub fn render_all(snapshot: &Snapshot, config: &Config, now_unix: i64) -> Vec<(P
                     now_unix,
                     (index, Page::ALL.len()),
                     true,
+                    &strings,
                 ),
             )
         })
@@ -286,9 +297,9 @@ mod tests {
         Config::parse(include_str!("../../../../config.example.toml")).unwrap()
     }
 
-    fn test_strings() -> &'static Strings {
+    fn test_strings() -> I18n {
         // The alarm-line assertions below expect the Russian table.
-        &Strings::RU
+        I18n::russian()
     }
 
     fn outage(subject: &str, severity: Severity) -> Problem {
@@ -302,7 +313,7 @@ mod tests {
 
     #[test]
     fn calm_state_shows_only_summary_and_detail_pages() {
-        let pages = plan(&Snapshot::default(), &config());
+        let pages = plan(&Snapshot::default(), &config(), &I18n::english());
         assert_eq!(pages, [Page::Home, Page::Temps, Page::Load, Page::Space]);
     }
 
@@ -311,7 +322,7 @@ mod tests {
         let mut snapshot = Snapshot::default();
         snapshot.ci.running.push(Pipeline::default());
         snapshot.health.problems.push(Problem::default());
-        let pages = plan(&snapshot, &config());
+        let pages = plan(&snapshot, &config(), &I18n::english());
         assert_eq!(&pages[..3], [Page::Home, Page::Problems, Page::Ci]);
     }
 
@@ -326,21 +337,21 @@ mod tests {
             .health
             .problems
             .push(outage("cars", Severity::Warning));
-        assert!(alarms(&snapshot, test_strings()).is_empty());
-        assert_ne!(plan(&snapshot, &config()), [Page::Alarm]);
+        assert!(alarms(&snapshot, &test_strings()).is_empty());
+        assert_ne!(plan(&snapshot, &config(), &I18n::english()), [Page::Alarm]);
 
         snapshot
             .health
             .problems
             .push(outage("immich", Severity::Critical));
         assert_eq!(
-            alarms(&snapshot, test_strings()),
+            alarms(&snapshot, &test_strings()),
             [AlarmItem {
                 what: "immich".into(),
                 why: "лежит".into()
             }]
         );
-        assert_eq!(plan(&snapshot, &config()), [Page::Alarm]);
+        assert_eq!(plan(&snapshot, &config(), &I18n::english()), [Page::Alarm]);
     }
 
     #[test]
@@ -359,7 +370,10 @@ mod tests {
         ];
         assert_eq!(startup_pending(&snapshot), ["immich"]);
         assert!(startup_relevant(&snapshot, &config()));
-        assert_eq!(plan(&snapshot, &config()), [Page::Startup]);
+        assert_eq!(
+            plan(&snapshot, &config(), &I18n::english()),
+            [Page::Startup]
+        );
     }
 
     #[test]
@@ -374,17 +388,20 @@ mod tests {
             .health
             .problems
             .push(outage("immich", Severity::Critical));
-        assert_eq!(plan(&snapshot, &config()), [Page::Startup]);
+        assert_eq!(
+            plan(&snapshot, &config(), &I18n::english()),
+            [Page::Startup]
+        );
 
         // Past the window the same outage alarms again.
         snapshot.host.uptime_secs = Some(1200);
         assert!(!startup_relevant(&snapshot, &config()));
-        assert_eq!(plan(&snapshot, &config()), [Page::Alarm]);
+        assert_eq!(plan(&snapshot, &config(), &I18n::english()), [Page::Alarm]);
 
         // Hardware is broken even during boot.
         snapshot.host.uptime_secs = Some(90);
         snapshot.disks.push(Disk::default());
-        assert_eq!(plan(&snapshot, &config()), [Page::Alarm]);
+        assert_eq!(plan(&snapshot, &config(), &I18n::english()), [Page::Alarm]);
     }
 
     #[test]
@@ -396,7 +413,7 @@ mod tests {
             active: true,
         }];
         assert_eq!(
-            plan(&snapshot, &config()),
+            plan(&snapshot, &config(), &I18n::english()),
             [Page::Home, Page::Temps, Page::Load, Page::Space]
         );
     }
@@ -439,7 +456,7 @@ mod tests {
             .health
             .problems
             .push(outage("storage01", Severity::Critical));
-        let lines: Vec<String> = alarms(&snapshot, test_strings())
+        let lines: Vec<String> = alarms(&snapshot, &test_strings())
             .into_iter()
             .map(|item| format!("{}: {}", item.what, item.why))
             .collect();
@@ -459,13 +476,24 @@ mod tests {
         let start = Instant::now();
         let mut rotation = Rotation::new(start);
         let calm = Snapshot::default();
-        assert_eq!(rotation.tick(&calm, &config, start).0, Page::Home);
+        assert_eq!(
+            rotation.tick(&calm, &config, &I18n::english(), start).0,
+            Page::Home
+        );
         let home = dwell(Page::Home, &config);
-        assert_eq!(rotation.tick(&calm, &config, start + home).0, Page::Temps);
+        assert_eq!(
+            rotation
+                .tick(&calm, &config, &I18n::english(), start + home)
+                .0,
+            Page::Temps
+        );
 
         let mut busy = Snapshot::default();
         busy.ci.running.push(Pipeline::default());
         let later = start + home + Duration::from_secs(1);
-        assert_eq!(rotation.tick(&busy, &config, later).0, Page::Temps);
+        assert_eq!(
+            rotation.tick(&busy, &config, &I18n::english(), later).0,
+            Page::Temps
+        );
     }
 }

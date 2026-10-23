@@ -74,7 +74,7 @@ pub fn run(config: &Config, max_secs: u64) -> anyhow::Result<()> {
         // Nothing is shutting down: a manual stop or a deploy restart.
         return switch_off(config);
     };
-    let strings = crate::render::i18n::Strings::get(config.display.language);
+    let strings = crate::render::i18n::I18n::load(config)?;
     let mut screen = screen(config)?;
     let started = Instant::now();
     let deadline = started + Duration::from_secs(max_secs);
@@ -92,7 +92,7 @@ pub fn run(config: &Config, max_secs: u64) -> anyhow::Result<()> {
         let done = have_state && last.pending.is_empty();
         let frame = crate::render::shutdown_page(
             target,
-            strings,
+            &strings,
             &last,
             have_state,
             containers,

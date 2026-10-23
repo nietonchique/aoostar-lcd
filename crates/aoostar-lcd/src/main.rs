@@ -108,6 +108,7 @@ fn run(config: &Config) -> anyhow::Result<()> {
         .open_device(&device(config))
         .context("opening LCD")?;
     screen.init().context("initialising LCD")?;
+    let strings = render::i18n::I18n::load(config)?;
     let mut collector = Collector::start(config);
     let mut rotation = Rotation::new(Instant::now());
     let mut heartbeat_failed = false;
@@ -118,7 +119,7 @@ fn run(config: &Config) -> anyhow::Result<()> {
     loop {
         let tick = Instant::now();
         let snapshot = collector.snapshot();
-        let (page, index, count) = rotation.tick(&snapshot, config, tick);
+        let (page, index, count) = rotation.tick(&snapshot, config, &strings, tick);
         // The panel occasionally drops chunks of a differential update, which
         // leaves fragments of the previous page behind. Send a full frame on
         // every page change and at least every FULL_REFRESH to heal that.
@@ -130,7 +131,15 @@ fn run(config: &Config) -> anyhow::Result<()> {
         // A full-screen alarm repaint takes ~1.3 s on this panel; flipping the
         // phase per frame keeps the blink regular regardless of frame time.
         flash = !flash;
-        let frame = render(page, &snapshot, config, unix_now(), (index, count), flash);
+        let frame = render(
+            page,
+            &snapshot,
+            config,
+            unix_now(),
+            (index, count),
+            flash,
+            &strings,
+        );
         // A write error usually means the USB device went away; exit and let
         // systemd restart the service once the device is back.
         screen.send_image(&frame).context("sending frame")?;

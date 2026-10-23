@@ -6,8 +6,12 @@
 [display]
 # USB-serial device of the front panel (AOOSTAR WTR MAX / GEM12+ PRO).
 device = "/dev/serial/by-id/usb-Synwit_USB_Virtual_COM-if00"
-# Panel UI language: "en" or "ru".
+# Panel UI language: any code with an i18n/<code>.toml table - the binary
+# embeds en and ru, community tables live in i18n/ of the source tree.
 language = "en"
+# Optional directory with extra or overridden translation tables
+# (<dir>/<code>.toml); useful for tweaking wording without rebuilding.
+# i18n_dir = "/etc/aoostar-lcd/i18n"
 # Seconds each page stays on screen.
 page_seconds = 10
 # Heartbeat file touched after every frame successfully sent to the LCD.

@@ -1,0 +1,131 @@
+# DRAFT — final home: .github/workflows/release.yml
+#
+# Tag-driven release: `git tag v1.2.3 && git push origin v1.2.3` builds the
+# x86_64 gnu binary tarball, .deb and .rpm and attaches them to the GitHub
+# release. No secrets needed: the default GITHUB_TOKEN with
+# `permissions: contents: write` is enough.
+#
+# glibc note: ubuntu-24.04 runners ship glibc 2.39. The produced binary and
+# .deb therefore need distros with glibc >= 2.39 (Debian 13+, Ubuntu 24.04+,
+# Fedora 39+, Arch). If wider backward compat is ever needed, drop the runner
+# to ubuntu-22.04 (glibc 2.35) while it still exists — nothing else changes.
+name: release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"   # v1.0.0, v1.1.0-rc.1, ...
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  TRIPLE: x86_64-unknown-linux-gnu   # asset naming only; see glibc note above
+
+jobs:
+  build:
+    name: Build and package (x86_64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      # packaging/systemd/aoostar-lcd.service must stay an exact sed of dist/
+      # (only /usr/local/bin -> /usr/bin); fail the build on drift.
+      - name: Check packaged unit matches dist/
+        run: |
+          sed 's|/usr/local/bin/aoostar-lcd|/usr/bin/aoostar-lcd|g' dist/aoostar-lcd.service > /tmp/unit.expected
+          if ! diff -u /tmp/unit.expected packaging/systemd/aoostar-lcd.service; then
+            echo "::error::packaging/systemd/aoostar-lcd.service drifted from dist/aoostar-lcd.service"
+            exit 1
+          fi
+
+      - name: Verify tag matches crate version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          crate="$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.name == "aoostar-lcd") | .version')"
+          if [ "$tag" != "$crate" ]; then
+            echo "::error::tag v$tag does not match crates/aoostar-lcd version $crate"
+            exit 1
+          fi
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libudev-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Host build (no --target): the runner is already x86_64-unknown-linux-gnu,
+      # and cargo-generate-rpm only rewrites asset paths that start with
+      # "target/", so keeping the plain target/release/ layout keeps the
+      # Cargo.toml asset entries valid.
+      - name: Build
+        run: cargo build --locked --release -p aoostar-lcd
+
+      - name: Install packaging tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb,cargo-generate-rpm
+
+      - name: Package binary tarball
+        run: |
+          dir="aoostar-lcd-${GITHUB_REF_NAME}-${TRIPLE}"
+          mkdir -p "dist/${dir}"
+          install -m755 target/release/aoostar-lcd "dist/${dir}/aoostar-lcd"
+          strip "dist/${dir}/aoostar-lcd"
+          install -m644 config.example.toml "dist/${dir}/"
+          install -m644 packaging/systemd/aoostar-lcd.service "dist/${dir}/"
+          install -m644 README.md README.ru.md "dist/${dir}/"
+          install -m644 LICENSE-MIT LICENSE-APACHE "dist/${dir}/"
+          tar -C dist -czf "dist/${dir}.tar.gz" "${dir}"
+          rm -rf "dist/${dir}"
+
+      # Both tools run from crates/aoostar-lcd (workspace root has no [package]).
+      # cargo-deb resolves the workspace target dir itself; cargo-generate-rpm
+      # writes relative to the CWD (crates/aoostar-lcd/target/generate-rpm/).
+      - name: Build .deb
+        working-directory: crates/aoostar-lcd
+        run: cargo deb --no-build
+
+      - name: Build .rpm
+        working-directory: crates/aoostar-lcd
+        run: cargo generate-rpm
+
+      - name: Collect artifacts
+        run: |
+          cp target/debian/*.deb dist/
+          cp crates/aoostar-lcd/target/generate-rpm/*.rpm dist/
+          ls -l dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the release and upload assets via GITHUB_TOKEN
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

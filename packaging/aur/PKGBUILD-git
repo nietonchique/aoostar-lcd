@@ -1,0 +1,52 @@
+# Maintainer: Aleksandr Ryzhkov <nietonchique@users.noreply.github.com>
+# Source build straight from the public GitHub main branch.
+# Differences vs aoostar-lcd-bin: makedepends (cargo toolchain + libudev
+# headers via pkg-config), build()/pkgver() from git describe, checksum SKIP
+# (git sources only), and the dist/ unit must be patched to /usr/bin here
+# because the repo unit hardcodes the /usr/local/bin hand-deploy layout.
+_pkgname=aoostar-lcd
+pkgname=${_pkgname}-git
+pkgver=1.0.0.r0.g0000000
+pkgrel=1
+pkgdesc='Glanceable front-panel status display for the AOOSTAR WTR MAX home server (git build)'
+arch=('x86_64')
+url='https://github.com/nietonchique/aoostar-lcd'
+license=('MIT' 'Apache')
+depends=('glibc' 'gcc-libs' 'systemd-libs')
+makedepends=('git' 'cargo' 'pkg-config')
+optdepends=('smartmontools: disk temperatures and SMART health data'
+            'zfs-utils: ZFS pool usage page'
+            'nvidia-utils: GPU telemetry via nvidia-smi'
+            'docker: container CPU/RAM statistics')
+provides=("${_pkgname}=${pkgver}")
+conflicts=("${_pkgname}" "${_pkgname}-bin")
+backup=('etc/aoostar-lcd.toml')
+source=("${_pkgname}::git+${url}.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "${_pkgname}"
+  git describe --long --tags --abbrev=7 |
+    sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd "${_pkgname}"
+  cargo build --locked --release -p aoostar-lcd
+}
+
+package() {
+  cd "${_pkgname}"
+
+  install -Dm755 target/release/aoostar-lcd "${pkgdir}/usr/bin/aoostar-lcd"
+
+  # dist/ unit is the /usr/local/bin hand-deploy variant; packages use /usr/bin.
+  sed 's|/usr/local/bin/aoostar-lcd|/usr/bin/aoostar-lcd|g' \
+    dist/aoostar-lcd.service > aoostar-lcd.service
+  install -Dm644 aoostar-lcd.service "${pkgdir}/usr/lib/systemd/system/aoostar-lcd.service"
+
+  install -Dm644 config.example.toml "${pkgdir}/etc/aoostar-lcd.toml"
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+  install -Dm644 LICENSE-MIT    "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE-MIT"
+  install -Dm644 LICENSE-APACHE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE-APACHE"
+}

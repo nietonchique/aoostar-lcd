@@ -10,7 +10,7 @@ use crate::shutdown::Progress;
 
 use super::Page;
 use super::canvas::{Align, Area, Canvas, Style, Weight, fit};
-use super::i18n::Strings;
+use super::i18n::I18n;
 use super::theme::*;
 
 const WIDTH: f32 = 960.0;
@@ -30,13 +30,14 @@ pub fn render(
     now_unix: i64,
     position: (usize, usize),
     flash: bool,
+    strings: &I18n,
 ) -> RgbImage {
     let view = View {
         snapshot,
         config,
         now: now_unix,
         flash,
-        strings: Strings::get(config.display.language),
+        strings,
     };
     if page == Page::Alarm {
         return alarm(&view).into_rgb();
@@ -67,7 +68,7 @@ struct View<'a> {
     /// Alarm blink phase; the caller flips it every frame.
     flash: bool,
     /// Localized UI strings for the configured language.
-    strings: &'static Strings,
+    strings: &'a I18n,
 }
 
 impl View<'_> {
@@ -134,14 +135,14 @@ fn status_bar(canvas: &mut Canvas, view: &View, (index, count): (usize, usize)) 
                 BAR_CRIT,
                 TEXT,
                 TEXT,
-                format!("{}: {names}", strings.down_label),
+                format!("{}: {names}", strings.t("status.down")),
             )
         } else {
             (
                 BAR_WARN,
                 AMBER,
                 AMBER,
-                format!("{}: {names}", strings.problem_label),
+                format!("{}: {names}", strings.t("status.problem")),
             )
         }
     } else if !maintenance.is_empty() {
@@ -151,12 +152,17 @@ fn status_bar(canvas: &mut Canvas, view: &View, (index, count): (usize, usize)) 
             TEXT,
             format!(
                 "{}: {}",
-                strings.maintenance_label,
+                strings.t("status.maintenance"),
                 subjects(strings, &maintenance)
             ),
         )
     } else {
-        (BAR_OK, GREEN, GREEN, strings.all_running.to_owned())
+        (
+            BAR_OK,
+            GREEN,
+            GREEN,
+            strings.t("status.all_running").to_owned(),
+        )
     };
     canvas.rect(0.0, 0.0, WIDTH, BAR_HEIGHT, background);
 
@@ -209,12 +215,12 @@ fn status_bar(canvas: &mut Canvas, view: &View, (index, count): (usize, usize)) 
     canvas.text(left, text_baseline, Align::Left, fitted, &label);
 }
 
-fn subjects(strings: &Strings, problems: &[&Problem]) -> String {
+fn subjects(strings: &I18n, problems: &[&Problem]) -> String {
     let mut names: Vec<String> = Vec::new();
     for problem in problems {
         let subject = strings.subject(&problem.subject);
-        if !names.iter().any(|known| known == &subject) {
-            names.push(subject.into_owned());
+        if !names.iter().any(|known| known.as_str() == subject) {
+            names.push(subject.to_owned());
         }
     }
     names.join(", ")
@@ -227,13 +233,13 @@ fn chips(view: &View) -> Vec<Chip> {
     let alerts = snapshot.health.alerts().count();
     if alerts > 0 {
         chips.push(Chip {
-            text: format!("{} {alerts}", strings.alerts_chip),
+            text: format!("{} {alerts}", strings.t("status.alerts")),
             color: AMBER,
         });
     }
     if let SourceState::Unavailable(_) = snapshot.health.alerts {
         chips.push(Chip {
-            text: strings.alerts_unknown_chip.to_owned(),
+            text: strings.t("status.alerts_unknown").to_owned(),
             color: AMBER,
         });
     }
@@ -410,6 +416,30 @@ fn empty_message(canvas: &mut Canvas, text: &str) {
     );
 }
 
+/// A panel row card; `accent` draws the colored stripe on the left edge.
+fn card(canvas: &mut Canvas, x: f32, y: f32, w: f32, h: f32, accent: Option<Rgb>) {
+    canvas.rounded_rect(x, y, w, h, RADIUS, PANEL);
+    if let Some(color) = accent {
+        canvas.rounded_rect(x, y, 12.0, h, 6.0, color);
+    }
+}
+
+/// Vertical baseline of a single line centered inside a row of height `h`.
+fn center_baseline(y: f32, h: f32, style: Style) -> f32 {
+    y + (h - Canvas::cap_height(style)) / 2.0
+}
+
+/// Baselines of a vertically centered title-over-detail block. Row content
+/// must not hug the bottom edge: the block shares the top and bottom padding.
+fn two_line_baselines(y: f32, h: f32, title: Style, detail: Style, gap: f32) -> (f32, f32) {
+    let block = Canvas::cap_height(title) + gap + Canvas::cap_height(detail);
+    let top = y + (h - block) / 2.0;
+    (
+        top + Canvas::cap_height(title),
+        top + Canvas::cap_height(title) + gap + Canvas::cap_height(detail),
+    )
+}
+
 // ---------------------------------------------------------------- pages
 
 fn home(canvas: &mut Canvas, view: &View) {
@@ -429,7 +459,7 @@ fn home(canvas: &mut Canvas, view: &View) {
             unit: "",
             tone: view.tone(host.cpu_temp_c, thresholds.cpu_temp_c),
             lines: [
-                format!("{} {}", strings.load_label, percent(cpu_load)),
+                format!("{} {}", strings.t("home.load"), percent(cpu_load)),
                 host.load1
                     .map_or_else(String::new, |load| format!("LA {load:.1}")),
             ],
@@ -438,7 +468,7 @@ fn home(canvas: &mut Canvas, view: &View) {
     );
 
     let used = view.memory_used_percent();
-    let (free_value, free_unit) = split_unit(strings, &strings.bytes(host.mem_available));
+    let (free_value, free_unit) = strings.split_unit(&strings.bytes(host.mem_available));
     let swap = if host.swap_used > 64 * 1024 * 1024 {
         format!("swap {}", strings.bytes(host.swap_used))
     } else {
@@ -448,7 +478,7 @@ fn home(canvas: &mut Canvas, view: &View) {
         canvas,
         &tiles[1],
         Headline {
-            label: strings.free_ram_label.to_owned(),
+            label: strings.t("home.free_ram").to_owned(),
             value: if host.mem_total > 0 {
                 free_value
             } else {
@@ -457,7 +487,7 @@ fn home(canvas: &mut Canvas, view: &View) {
             unit: if host.mem_total > 0 { free_unit } else { "" },
             tone: view.tone(used, thresholds.memory_used_percent),
             lines: [
-                format!("{} {}", strings.of_word, strings.bytes(host.mem_total)),
+                format!("{} {}", strings.t("home.of"), strings.bytes(host.mem_total)),
                 swap,
             ],
             meter: used.map(|used| (used / 100.0, thresholds.memory_used_percent.classify(used))),
@@ -482,10 +512,10 @@ fn home(canvas: &mut Canvas, view: &View) {
             lines: [
                 match (gpu_util, gpu.and_then(|gpu| gpu.power_w)) {
                     (Some(util), Some(power)) => {
-                        format!("{util:.0}% · {power:.0} {}", strings.watt_unit)
+                        format!("{util:.0}% · {power:.0} {}", strings.t("units.watt"))
                     }
                     (Some(util), None) => {
-                        format!("{} {util:.0}%", strings.load_label)
+                        format!("{} {util:.0}%", strings.t("home.load"))
                     }
                     _ => String::new(),
                 },
@@ -509,28 +539,28 @@ fn home(canvas: &mut Canvas, view: &View) {
     // Busy: say plainly how much is read and how much is written.
     let lines = if hdd_busy {
         [
-            format!("{} {}", strings.read_word, megabytes(read)),
-            format!("{} {}", strings.write_word, megabytes(write)),
+            format!("{} {}", strings.t("home.read"), megabytes(read)),
+            format!("{} {}", strings.t("home.write"), megabytes(write)),
         ]
     } else {
         let second = match snapshot.pools.iter().find_map(|pool| pool.scan.as_ref()) {
             Some(scan) if scan.paused => {
-                format!("{} {}", scan_name(scan.kind), strings.paused_word)
+                format!("{} {}", scan_name(scan.kind), strings.t("home.paused"))
             }
             Some(scan) => format!("{} {:.0}%", scan_name(scan.kind), scan.percent),
-            None if snapshot.hdd_self_test_running() => strings.smart_test.to_owned(),
+            None if snapshot.hdd_self_test_running() => strings.t("home.smart_test").to_owned(),
             None => view.hdd_temp_max().map_or_else(String::new, |temp| {
-                format!("{} {}°", strings.max_word, temp)
+                format!("{} {}°", strings.t("home.max"), temp)
             }),
         };
-        [strings.idle_word.to_owned(), second]
+        [strings.t("home.idle").to_owned(), second]
     };
     headline(
         canvas,
         &tiles[3],
         Headline {
             label: if hdd_busy {
-                format!("HDD, {}", strings.rate_unit)
+                format!("HDD, {}", strings.t("units.rate"))
             } else {
                 "HDD".to_owned()
             },
@@ -547,22 +577,12 @@ fn home(canvas: &mut Canvas, view: &View) {
     );
 }
 
-/// Splits the unit off a localized size: `("68", "ГБ")`.
-fn split_unit(strings: &Strings, text: &str) -> (String, &'static str) {
-    for unit in strings.size_units.iter().rev() {
-        if let Some(value) = text.strip_suffix(unit) {
-            return (value.trim_end().to_owned(), unit);
-        }
-    }
-    (text.to_owned(), "")
-}
-
 /// `read 76`, `write 120` or `read 5, write 3` (MB/s, unit added by the caller).
-fn read_write(strings: &Strings, read_bps: u64, write_bps: u64) -> String {
+fn read_write(strings: &I18n, read_bps: u64, write_bps: u64) -> String {
     let read = megabytes(read_bps);
     let write = megabytes(write_bps);
-    let read_line = format!("{} {read}", strings.read_word);
-    let write_line = format!("{} {write}", strings.write_word);
+    let read_line = format!("{} {read}", strings.t("home.read"));
+    let write_line = format!("{} {write}", strings.t("home.write"));
     match (read.as_str(), write.as_str()) {
         (_, "0") => read_line,
         ("0", _) => write_line,
@@ -589,7 +609,7 @@ fn problems(canvas: &mut Canvas, view: &View) {
     let strings = view.strings;
     let list = &view.snapshot.health.problems;
     if list.is_empty() {
-        empty_message(canvas, strings.no_problems);
+        empty_message(canvas, strings.t("problems.none"));
         return;
     }
     const ROWS: usize = 3;
@@ -599,12 +619,19 @@ fn problems(canvas: &mut Canvas, view: &View) {
 
     for (row, problem) in list.iter().take(shown).enumerate() {
         let y = BODY_TOP + row as f32 * (row_height + GAP);
-        canvas.rounded_rect(MARGIN, y, WIDTH - 2.0 * MARGIN, row_height, RADIUS, PANEL);
-        canvas.rounded_rect(MARGIN, y, 12.0, row_height, 6.0, severity_color(problem));
+        card(
+            canvas,
+            MARGIN,
+            y,
+            WIDTH - 2.0 * MARGIN,
+            row_height,
+            Some(severity_color(problem)),
+        );
 
         let right_edge = WIDTH - MARGIN - PAD;
         let age_style = LABEL.color(TEXT);
-        let title_baseline = y + 14.0 + Canvas::cap_height(TITLE);
+        let (title_baseline, detail_baseline) =
+            two_line_baselines(y, row_height, TITLE, DETAIL, 12.0);
         let age_width = match problem.since {
             Some(since) => canvas.text(
                 right_edge,
@@ -626,10 +653,9 @@ fn problems(canvas: &mut Canvas, view: &View) {
             Align::Left,
             title_style,
             right_edge - age_width - 24.0 - left,
-            &strings.subject(&problem.subject),
+            strings.subject(&problem.subject),
         );
         let detail = strings.detail(&problem.detail);
-        let detail_baseline = title_baseline + 12.0 + Canvas::cap_height(DETAIL);
         let count = if problem.count > 1 {
             canvas.text(
                 right_edge,
@@ -654,30 +680,43 @@ fn problems(canvas: &mut Canvas, view: &View) {
     if overflow {
         let rest = &list[shown..];
         let y = BODY_TOP + shown as f32 * (row_height + GAP);
-        canvas.rounded_rect(MARGIN, y, WIDTH - 2.0 * MARGIN, row_height, RADIUS, PANEL);
         let worst = rest
             .iter()
             .map(severity_color)
             .find(|color| *color == RED)
             .unwrap_or(AMBER);
-        canvas.rounded_rect(MARGIN, y, 12.0, row_height, 6.0, worst);
+        card(
+            canvas,
+            MARGIN,
+            y,
+            WIDTH - 2.0 * MARGIN,
+            row_height,
+            Some(worst),
+        );
         let left = MARGIN + 34.0;
-        let title_baseline = y + 14.0 + Canvas::cap_height(TITLE);
+        let (title_baseline, detail_baseline) =
+            two_line_baselines(y, row_height, TITLE, DETAIL, 12.0);
         let total: u32 = rest.iter().map(|problem| problem.count.max(1)).sum();
         canvas.text(
             left,
             title_baseline,
             Align::Left,
             TITLE,
-            &strings.more_problems_line(rest.len(), total),
+            &strings.tf(
+                "problems.more_line",
+                &[
+                    ("count", &rest.len().to_string()),
+                    ("alerts", &total.to_string()),
+                ],
+            ),
         );
         let names: Vec<String> = rest
             .iter()
-            .map(|problem| strings.subject(&problem.subject).into_owned())
+            .map(|problem| strings.subject(&problem.subject).to_owned())
             .collect();
         canvas.text_fit(
             left,
-            title_baseline + 12.0 + Canvas::cap_height(DETAIL),
+            detail_baseline,
             Align::Left,
             DETAIL,
             WIDTH - MARGIN - PAD - left,
@@ -700,13 +739,13 @@ fn ci(canvas: &mut Canvas, view: &View) {
     let row_y = |row: usize| BODY_TOP + row as f32 * (row_height + GAP);
 
     if ci.running.is_empty() && queued == 0 {
-        empty_message(canvas, strings.no_builds);
+        empty_message(canvas, strings.t("ci.none"));
         return;
     }
 
     for (row, pipeline) in ci.running.iter().take(shown).enumerate() {
         let y = row_y(row);
-        canvas.rounded_rect(MARGIN, y, WIDTH - 2.0 * MARGIN, row_height, RADIUS, PANEL);
+        card(canvas, MARGIN, y, WIDTH - 2.0 * MARGIN, row_height, None);
         let elapsed = view.now - pipeline.started_at;
         let clock_style = VALUE_M.color(match view.ci_tone(elapsed) {
             Tone::Normal => TEXT,
@@ -724,7 +763,8 @@ fn ci(canvas: &mut Canvas, view: &View) {
             .repo
             .rsplit_once('/')
             .map_or(pipeline.repo.as_str(), |(_, name)| name);
-        let title_baseline = y + 10.0 + Canvas::cap_height(TITLE);
+        let (title_baseline, detail_baseline) =
+            two_line_baselines(y, row_height, TITLE, DETAIL, 12.0);
         let (fitted, text) = fit(TITLE, MIN_SIZE, max, repo);
         let width = canvas.text(left, title_baseline, Align::Left, fitted, &text);
         let number = format!("#{}", pipeline.number);
@@ -742,34 +782,27 @@ fn ci(canvas: &mut Canvas, view: &View) {
             .filter(|part| !part.is_empty())
             .collect::<Vec<_>>()
             .join(" · ");
-        canvas.text_fit(
-            left,
-            title_baseline + 12.0 + Canvas::cap_height(DETAIL),
-            Align::Left,
-            DETAIL,
-            max,
-            &detail,
-        );
+        canvas.text_fit(left, detail_baseline, Align::Left, DETAIL, max, &detail);
     }
 
     let hidden = ci.running.len() - shown;
     if queued > 0 || hidden > 0 {
         let y = row_y(shown);
-        canvas.rounded_rect(MARGIN, y, WIDTH - 2.0 * MARGIN, row_height, RADIUS, PANEL);
-        let baseline = y + row_height / 2.0 + Canvas::cap_height(TITLE) / 2.0;
+        card(canvas, MARGIN, y, WIDTH - 2.0 * MARGIN, row_height, None);
+        let baseline = center_baseline(y, row_height, TITLE);
         let mut parts = Vec::new();
         if queued > 0 {
-            parts.push(format!("{} {queued}", strings.queue_word));
+            parts.push(format!("{} {queued}", strings.t("ci.queue")));
             if let Some(oldest) = ci.oldest_queued_secs {
                 parts.push(format!(
                     "{} {}",
-                    strings.waiting_word,
+                    strings.t("ci.waiting"),
                     strings.age(oldest as i64)
                 ));
             }
         }
         if hidden > 0 {
-            parts.push(format!("{hidden} {}", strings.still_running_word));
+            parts.push(strings.tn("ci.more_running", hidden as u64));
         }
         let wait_tone = ci
             .oldest_queued_secs
@@ -828,16 +861,16 @@ fn hdd(canvas: &mut Canvas, view: &View) {
         .filter(|disk| disk.kind == DiskKind::Hdd)
         .collect();
     if disks.is_empty() {
-        empty_message(canvas, strings.no_hdds);
+        empty_message(canvas, strings.t("hdd.none"));
         return;
     }
     let top = table_header(
         canvas,
         &[
-            (MARGIN + PAD, Align::Left, strings.disk_column),
-            (HDD_BUSY_RIGHT, Align::Right, strings.busy_column),
-            (HDD_READ_RIGHT, Align::Right, strings.read_column),
-            (HDD_WRITE_RIGHT, Align::Right, strings.write_column),
+            (MARGIN + PAD, Align::Left, strings.t("hdd.disk")),
+            (HDD_BUSY_RIGHT, Align::Right, strings.t("hdd.busy")),
+            (HDD_READ_RIGHT, Align::Right, strings.t("hdd.read")),
+            (HDD_WRITE_RIGHT, Align::Right, strings.t("hdd.write")),
             (RIGHT_EDGE, Align::Right, "°C"),
         ],
     );
@@ -869,7 +902,7 @@ fn hdd(canvas: &mut Canvas, view: &View) {
                 baseline,
                 Align::Right,
                 bold.color(RED),
-                strings.disk_missing,
+                strings.t("hdd.missing"),
             );
             continue;
         }
@@ -902,8 +935,8 @@ fn hdd(canvas: &mut Canvas, view: &View) {
             (_, true) => ("SMART!".to_owned(), RED),
             (Some(test), _) => (
                 test.remaining_percent.map_or_else(
-                    || strings.self_test_word.to_owned(),
-                    |left| format!("{} {left}%", strings.self_test_word),
+                    || strings.t("hdd.self_test").to_owned(),
+                    |left| format!("{} {left}%", strings.t("hdd.self_test")),
                 ),
                 AMBER,
             ),
@@ -931,9 +964,9 @@ fn zfs(canvas: &mut Canvas, view: &View) {
         if pool.total > 0 {
             parts.push(format!(
                 "{} {} {} {}",
-                strings.free_of,
+                strings.t("zfs.free_of"),
                 strings.bytes(pool.total.saturating_sub(pool.used)),
-                strings.of_word,
+                strings.t("home.of"),
                 strings.bytes(pool.total)
             ));
         }
@@ -941,11 +974,11 @@ fn zfs(canvas: &mut Canvas, view: &View) {
             Some(scan) => {
                 let mut text = format!("{} {:.0}%", scan_name(scan.kind), scan.percent);
                 if scan.paused {
-                    text.push_str(&format!(" {}", strings.paused_word));
+                    text.push_str(&format!(" {}", strings.t("home.paused")));
                 } else if let Some(eta) = scan.eta_secs {
                     text.push_str(&format!(
                         " {} {}",
-                        strings.eta_word,
+                        strings.t("zfs.eta"),
                         strings.age(eta as i64)
                     ));
                 }
@@ -982,7 +1015,7 @@ fn zfs(canvas: &mut Canvas, view: &View) {
         header_baseline,
         Align::Left,
         LABEL,
-        strings.hdd_activity_title,
+        strings.t("zfs.activity"),
     );
     let busy: Vec<_> = snapshot
         .datasets
@@ -997,7 +1030,7 @@ fn zfs(canvas: &mut Canvas, view: &View) {
             header_baseline + line_step,
             Align::Left,
             DETAIL,
-            strings.datasets_idle,
+            strings.t("zfs.datasets_idle"),
         );
         return;
     }
@@ -1041,12 +1074,12 @@ fn temps(canvas: &mut Canvas, view: &View) {
             view.tone(gpu_temp, thresholds.gpu_temp_c),
         ),
         (
-            strings.ram_label.to_owned(),
+            strings.t("temps.ram").to_owned(),
             temperature(host.ram_temp_c),
             view.tone(host.ram_temp_c, thresholds.ram_temp_c),
         ),
         (
-            strings.fan_label.to_owned(),
+            strings.t("temps.fan").to_owned(),
             host.fans
                 .iter()
                 .map(|fan| fan.rpm)
@@ -1063,7 +1096,7 @@ fn temps(canvas: &mut Canvas, view: &View) {
         let (value, tone) = if disk.present {
             (temperature(disk.temp_c), view.tone(disk.temp_c, level))
         } else {
-            (strings.gone_word.to_owned(), Tone::Critical)
+            (strings.t("temps.gone").to_owned(), Tone::Critical)
         };
         items.push((disk.label.clone(), value, tone));
     }
@@ -1103,24 +1136,34 @@ fn alarm(view: &View) -> Canvas {
     };
     let mut canvas = Canvas::new(WIDTH as u32, HEIGHT as u32, background);
     let title = Style::new(112.0, Weight::Bold, foreground);
-    let title_baseline = 12.0 + Canvas::cap_height(title);
+    let what = Style::new(100.0, Weight::Bold, foreground);
+    let why = Style::new(72.0, Weight::Bold, foreground);
+    // Headline plus the item block form one group; center it vertically so a
+    // single broken thing does not hug the top edge.
+    let gap_title = 24.0;
+    let gap_item = 24.0;
+    let block = Canvas::cap_height(title)
+        + gap_title
+        + Canvas::cap_height(what)
+        + gap_item
+        + Canvas::cap_height(why);
+    let top = (HEIGHT - block) / 2.0;
+    let title_baseline = top + Canvas::cap_height(title);
     canvas.text(
         WIDTH / 2.0,
         title_baseline,
         Align::Center,
         title,
-        view.strings.alarm_title,
+        view.strings.t("alarm.title"),
     );
 
-    let top = title_baseline + 24.0;
     let area_height = HEIGHT - MARGIN - top;
     let inner = WIDTH - 2.0 * PAD;
     match items.as_slice() {
         [] => {}
         [only] => {
-            let what = Style::new(100.0, Weight::Bold, foreground);
-            let why = Style::new(72.0, Weight::Bold, foreground);
-            let what_baseline = top + Canvas::cap_height(what) + 10.0;
+            let what_baseline =
+                top + Canvas::cap_height(title) + gap_title + Canvas::cap_height(what);
             canvas.text_fit(
                 WIDTH / 2.0,
                 what_baseline,
@@ -1131,7 +1174,7 @@ fn alarm(view: &View) -> Canvas {
             );
             canvas.text_fit(
                 WIDTH / 2.0,
-                what_baseline + 24.0 + Canvas::cap_height(why),
+                what_baseline + gap_item + Canvas::cap_height(why),
                 Align::Center,
                 why,
                 inner,
@@ -1216,7 +1259,7 @@ fn phase_frame(
     canvas: &mut Canvas,
     head: &PhaseHead,
     rows: &[PhaseRow],
-    strings: &Strings,
+    strings: &I18n,
     empty: &str,
 ) {
     let top = MARGIN;
@@ -1291,8 +1334,8 @@ fn phase_frame(
     let size = (row_h * 0.55).clamp(MIN_SIZE, 46.0);
     for (row, item) in rows.iter().take(shown).enumerate() {
         let y = top + row as f32 * (row_h + GAP);
-        canvas.rounded_rect(list_x, y, list_w, row_h, RADIUS, PANEL);
-        let baseline = y + row_h / 2.0 + Canvas::cap_height(TITLE.size(size)) / 2.0;
+        card(canvas, list_x, y, list_w, row_h, None);
+        let baseline = center_baseline(y, row_h, TITLE.size(size));
         canvas.text_fit(
             list_x + PAD,
             baseline,
@@ -1304,15 +1347,15 @@ fn phase_frame(
     }
     if overflow {
         let y = top + shown as f32 * (row_h + GAP);
-        canvas.rounded_rect(list_x, y, list_w, row_h, RADIUS, PANEL);
-        let baseline = y + row_h / 2.0 + Canvas::cap_height(TITLE.size(size)) / 2.0;
+        card(canvas, list_x, y, list_w, row_h, None);
+        let baseline = center_baseline(y, row_h, TITLE.size(size));
         canvas.text_fit(
             list_x + PAD,
             baseline,
             Align::Left,
             TITLE.size(size).color(MUTED),
             list_w - 2.0 * PAD,
-            &strings.more(rows.len() - shown),
+            &strings.tf("alarm.more", &[("n", &(rows.len() - shown).to_string())]),
         );
     }
 }
@@ -1324,14 +1367,14 @@ fn startup(view: &View) -> Canvas {
     let total = view.snapshot.services.len();
     let up = total - pending.len();
     let head = PhaseHead {
-        title: strings.startup_title,
+        title: strings.t("phase.startup"),
         accent: BLUE,
         big: format!("{up} / {total}"),
-        big_label: strings.services_up_label(up),
+        big_label: strings.tn("plurals.services_up", up as u64),
         progress: (total > 0).then(|| up as f32 / total as f32),
         details: vec![match view.snapshot.host.uptime_secs {
-            Some(uptime) => format!("{} {}", strings.uptime_word, stopwatch(uptime as i64)),
-            None => format!("{} --", strings.uptime_word),
+            Some(uptime) => format!("{} {}", strings.t("phase.uptime"), stopwatch(uptime as i64)),
+            None => format!("{} --", strings.t("phase.uptime")),
         }],
     };
     let rows: Vec<PhaseRow> = pending
@@ -1342,7 +1385,13 @@ fn startup(view: &View) -> Canvas {
         })
         .collect();
     let mut canvas = Canvas::new(WIDTH as u32, HEIGHT as u32, BACKGROUND);
-    phase_frame(&mut canvas, &head, &rows, strings, strings.all_services_up);
+    phase_frame(
+        &mut canvas,
+        &head,
+        &rows,
+        strings,
+        strings.t("phase.all_up"),
+    );
     canvas
 }
 
@@ -1351,7 +1400,7 @@ fn startup(view: &View) -> Canvas {
 /// amber; green headline once every watched service is down.
 pub fn shutdown_page(
     target: Target,
-    strings: &Strings,
+    strings: &I18n,
     progress: &Progress,
     have_state: bool,
     containers: Option<u32>,
@@ -1362,7 +1411,7 @@ pub fn shutdown_page(
         .failed
         .iter()
         .map(|subject| PhaseRow {
-            text: strings.subject(subject).into_owned(),
+            text: strings.subject(subject).to_owned(),
             color: RED,
         })
         .collect();
@@ -1378,26 +1427,26 @@ pub fn shutdown_page(
         } else {
             "--".to_owned()
         },
-        big_label: strings.services_stopped_label(progress.stopped),
+        big_label: strings.tn("plurals.services_stopped", progress.stopped as u64),
         progress: (have_state && progress.total > 0)
             .then(|| progress.stopped as f32 / progress.total as f32),
         details: {
             let mut details = vec![format!(
                 "{} {}",
-                strings.elapsed_word,
+                strings.t("phase.elapsed"),
                 stopwatch(elapsed_secs as i64)
             )];
             if let Some(containers) = containers {
-                details.push(strings.containers(containers));
+                details.push(strings.tn("plurals.containers", containers as u64));
             }
             details
         },
     };
     let mut canvas = Canvas::new(WIDTH as u32, HEIGHT as u32, BACKGROUND);
     let empty = if done {
-        strings.all_stopped
+        strings.t("phase.all_stopped")
     } else {
-        strings.status_unavailable
+        strings.t("phase.status_unavailable")
     };
     phase_frame(&mut canvas, &head, &rows, strings, empty);
     canvas.into_rgb()
@@ -1418,7 +1467,7 @@ fn load(canvas: &mut Canvas, view: &View) {
 
     let memory_header = format!(
         "{} {}",
-        strings.memory_title,
+        strings.t("load.memory"),
         strings.bytes(host.mem_available)
     );
     let memory_rows: Vec<(String, String)> = snapshot
@@ -1433,7 +1482,7 @@ fn list_panel(
     canvas: &mut Canvas,
     tile: &Tile,
     header: &str,
-    strings: &Strings,
+    strings: &I18n,
     rows: &[(String, String)],
 ) {
     tile.panel(canvas);
@@ -1447,7 +1496,7 @@ fn list_panel(
             header_baseline + 60.0,
             Align::Left,
             DETAIL,
-            strings.no_data,
+            strings.t("load.no_data"),
         );
         return;
     }
@@ -1498,7 +1547,7 @@ fn space(canvas: &mut Canvas, view: &View) {
         ));
     }
     if items.is_empty() {
-        empty_message(canvas, strings.no_volumes);
+        empty_message(canvas, strings.t("space.none"));
         return;
     }
     const FREE_RIGHT: f32 = 420.0;
@@ -1527,7 +1576,7 @@ fn space(canvas: &mut Canvas, view: &View) {
                 baseline,
                 Align::Right,
                 bold.color(RED),
-                strings.gone_word,
+                strings.t("temps.gone"),
             );
             continue;
         }
@@ -1549,7 +1598,7 @@ fn space(canvas: &mut Canvas, view: &View) {
             baseline,
             Align::Left,
             plain,
-            &format!("{} {}", strings.of_word, strings.bytes(*total)),
+            &format!("{} {}", strings.t("home.of"), strings.bytes(*total)),
         );
         if let Some(used) = used_percent {
             canvas.meter(
@@ -1591,7 +1640,7 @@ mod tests {
         };
         let frame = shutdown_page(
             Target::Reboot,
-            &Strings::EN,
+            &I18n::english(),
             &progress,
             true,
             Some(9),
@@ -1602,7 +1651,7 @@ mod tests {
 
         let done = shutdown_page(
             Target::Poweroff,
-            &Strings::RU,
+            &I18n::russian(),
             &Progress::default(),
             true,
             Some(0),
@@ -1618,7 +1667,15 @@ mod tests {
             pending: (0..8).map(|index| format!("svc{index}")).collect(),
             failed: Vec::new(),
         };
-        let frame = shutdown_page(Target::Reboot, &Strings::EN, &many, true, None, 10, false);
+        let frame = shutdown_page(
+            Target::Reboot,
+            &I18n::english(),
+            &many,
+            true,
+            None,
+            10,
+            false,
+        );
         assert_eq!(frame.dimensions(), asterctl_lcd::DISPLAY_SIZE);
     }
 
@@ -1633,13 +1690,61 @@ mod tests {
                 active: index == 7,
             })
             .collect();
-        let frame = render(Page::Startup, &snapshot, &config, 0, (0, 1), true);
+        let frame = render(
+            Page::Startup,
+            &snapshot,
+            &config,
+            0,
+            (0, 1),
+            true,
+            &I18n::english(),
+        );
         assert_eq!(frame.dimensions(), asterctl_lcd::DISPLAY_SIZE);
     }
 
     #[test]
     fn clock_applies_offset_and_wraps_midnight() {
-        assert_eq!(clock_text(0, 180), "03:00");
+        // THROWAWAY: dump phase screenshots for docs, remove after.
+        shutdown_page(
+            Target::Reboot,
+            &I18n::english(),
+            &Progress {
+                total: 8,
+                stopped: 3,
+                pending: vec![
+                    "jellyfin".into(),
+                    "home-assistant".into(),
+                    "vaultwarden".into(),
+                ],
+                failed: vec!["nginx".into()],
+            },
+            true,
+            Some(11),
+            23,
+            false,
+        )
+        .save("/tmp/reboot.png")
+        .unwrap();
+        shutdown_page(
+            Target::Poweroff,
+            &I18n::english(),
+            &Progress {
+                total: 8,
+                stopped: 8,
+                pending: vec![],
+                failed: vec![],
+            },
+            true,
+            Some(0),
+            61,
+            true,
+        )
+        .save("/tmp/shutdown.png")
+        .unwrap();
+    }
+
+    #[test]
+    fn clock_applies_offset_and_wraps_midnight_real() {
         assert_eq!(clock_text(86_399, 0), "23:59");
         assert_eq!(clock_text(22 * 3600, 180), "01:00");
     }
@@ -1647,17 +1752,23 @@ mod tests {
     #[test]
     fn dataset_traffic_names_its_direction() {
         const MB: u64 = 1024 * 1024;
-        let s = Strings::RU;
+        let s = I18n::russian();
         assert_eq!(read_write(&s, 76 * MB, 0), "чтение 76");
         assert_eq!(read_write(&s, 10_000, 120 * MB), "запись 120");
         assert_eq!(read_write(&s, 5 * MB, 3 * MB), "чтение 5, запись 3");
-        assert_eq!(read_write(&Strings::EN, 76 * MB, 0), "read 76");
+        assert_eq!(read_write(&I18n::english(), 76 * MB, 0), "read 76");
     }
 
     #[test]
     fn units_split_from_formatted_sizes() {
-        assert_eq!(split_unit(&Strings::RU, "68 ГБ"), ("68".to_owned(), "ГБ"));
-        assert_eq!(split_unit(&Strings::RU, "6.8 ТБ"), ("6.8".to_owned(), "ТБ"));
-        assert_eq!(split_unit(&Strings::EN, "6.8 TB"), ("6.8".to_owned(), "TB"));
+        assert_eq!(I18n::russian().split_unit("68 ГБ"), ("68".to_owned(), "ГБ"));
+        assert_eq!(
+            I18n::russian().split_unit("6.8 ТБ"),
+            ("6.8".to_owned(), "ТБ")
+        );
+        assert_eq!(
+            I18n::english().split_unit("6.8 TB"),
+            ("6.8".to_owned(), "TB")
+        );
     }
 }

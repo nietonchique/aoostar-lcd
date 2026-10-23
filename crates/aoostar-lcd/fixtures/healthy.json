@@ -1,0 +1,58 @@
+{
+  "taken_at": 1792740000,
+  "host": {
+    "cpu_percent": 11.5,
+    "load1": 0.8,
+    "cpu_temp_c": 46.0,
+    "ram_temp_c": 38.0,
+    "mem_total": 33479553024,
+    "mem_available": 29123534848,
+    "swap_total": 2147483648,
+    "swap_used": 0,
+    "gpu": {
+      "util_percent": 0.0,
+      "temp_c": 41.0,
+      "power_w": 6.0,
+      "mem_used_mib": 412,
+      "mem_total_mib": 8188
+    },
+    "fans": [{ "label": "chassis", "rpm": 720 }],
+    "uptime_secs": 86400
+  },
+  "disks": [
+    { "label": "NV1", "kind": "nvme", "present": true, "temp_c": 41.0, "busy_percent": 0.5 },
+    { "label": "NV2", "kind": "nvme", "present": true, "temp_c": 39.0, "busy_percent": 0.0 },
+    { "label": "H1", "kind": "hdd", "present": true, "temp_c": 36.0, "busy_percent": 1.5 },
+    { "label": "H2", "kind": "hdd", "present": true, "temp_c": 35.0, "busy_percent": 0.8 },
+    { "label": "H3", "kind": "hdd", "present": true, "temp_c": 36.0, "busy_percent": 0.4 }
+  ],
+  "volumes": [
+    { "label": "ROOT", "mounted": true, "used": 21474836480, "total": 107374182400 },
+    { "label": "APPS", "mounted": true, "used": 118111600640, "total": 536870912000 }
+  ],
+  "pools": [
+    {
+      "name": "tank",
+      "health": "ONLINE",
+      "used": 3221225472000,
+      "total": 12025908428800,
+      "errors": 0,
+      "bad_devices": []
+    }
+  ],
+  "datasets": [],
+  "top_cpu": [],
+  "top_memory": [],
+  "ci": { "available": true, "running": [], "queued": 0, "oldest_queued_secs": 0 },
+  "services": [
+    { "subject": "docker", "active": true },
+    { "subject": "grafana", "active": true },
+    { "subject": "home-assistant", "active": true },
+    { "subject": "jellyfin", "active": true },
+    { "subject": "nginx", "active": true },
+    { "subject": "obsidian", "active": true },
+    { "subject": "postgresql", "active": true },
+    { "subject": "vaultwarden", "active": true }
+  ],
+  "health": { "problems": [], "alerts": {"state": "ok"}, "containers_running": 14, "containers_total": 14 }
+}
