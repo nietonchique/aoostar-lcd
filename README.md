@@ -24,7 +24,6 @@ every watched service is down.
 - **[Configuration](docs/configuration.md)** — every section and key.
 - **[Boot and power transitions](docs/boot-shutdown.md)** — why the unit is
   wired the way it is.
-- [Русская документация](README.ru.md).
 
 ## Languages
 
